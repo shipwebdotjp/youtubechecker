@@ -9,7 +9,7 @@ import settings
 
 def main(): # メイン関数
     job() # 起動時に一回実行
-    schedule.every().day.at("23:30").do(job) # 毎日23:30分に実行
+    schedule.every().day.at("23:30").do(job) # 毎日23:30分に実行 UTC+0で記載
     while True:
         schedule.run_pending()
         time.sleep(1)
@@ -61,8 +61,10 @@ def job(): # Youtube Data APIへアクセスする
             ).execute() # Youtube APIへのリクエスト作成
         for item in response['items']: # 帰ってきた結果をチャンネルごと処理
             if item['id'] in channel_dict.keys(): # 以前のデータが保存されているかどうか
-                change = int(item['statistics']['subscriberCount']) - int(channel_dict.get(item['id'])['subscriberCount']) # 今回から前回の値を減算
-                change = ('+' if change > 0 else '') + str(change) + "人" # プラスの場合は先頭に＋をつけて人を最後につける
+                current_subscriber = int(item['statistics']['subscriberCount']) # 現在の登録者数
+                last_subscriber = int(channel_dict.get(item['id'])['subscriberCount']) # 前回の登録者数
+                change = current_subscriber - last_subscriber # 今回から前回の値を減算
+                change = ('+' if change > 0 else '') + str(change) # プラスの場合は先頭に＋をつける
             else: # 以前のデータが保存されていなければ，増減値は「New」にする
                 change = 'New'
 
@@ -71,9 +73,9 @@ def job(): # Youtube Data APIへアクセスする
                 'subscriberCount':item['statistics']['subscriberCount'],
                 'change': change
             } # 次回の参照用に保存するリストを新たに作成
-            print('チャンネル名: '+item['snippet']['title']+' 登録者数: '+item['statistics']['subscriberCount']+ ' 増減: '+change)
+            print('Channel: '+item['snippet']['title']+' Subscriber: '+item['statistics']['subscriberCount']+ ' Change: '+change)
             # リストにチャンネルごとの結果を追加
-            result.append(item['snippet']['title']+' 登録者数: '+item['statistics']['subscriberCount']+ ' 増減: '+change)
+            result.append(item['snippet']['title']+' Subscriber: '+"{:,}".format(int(item['statistics']['subscriberCount']))+ ' ('+change+')')
 
         send_line_notify('\n'+'\n'.join(result)) # 結果が入ったリストを改行で結合させて，LINE Notifyで結果をLINEに送信する
         pickle_dump(new_channel_dict,channel_dict_path) # 今回取得したデータを次回増減を出すために保存
@@ -81,5 +83,6 @@ def job(): # Youtube Data APIへアクセスする
         # HTTPエラーが生じた場合は，エラーメッセージを表示。
         print('There was an error creating the model. Check the details:')
         print(err._get_reason())
+        send_line_notify(err._get_reason()) # LINEでもエラーを通知
 
 main() #メイン関数を呼び出し
