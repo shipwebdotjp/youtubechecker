@@ -1,0 +1,6 @@
+﻿version: '3'
+services:
+  python:
+    build: .
+    volumes:
+      - ./app:/workspace/app
