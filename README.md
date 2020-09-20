@@ -1,7 +1,7 @@
 # Youtube Subscriber Checker
 
-Notificate number of subscriber of specific Youtube Channel via LINE once a day
-指定したYoutubeチャンネルの登録者数を毎日一回LINEで通知
+Notificate number of subscriber of specific Youtube Channel via LINE once a day.  
+指定したYoutubeチャンネルの登録者数を毎日一回LINEで通知  
 
 ![LINE](https://blog.shipweb.jp/wp-content/uploads/2020/09/Screenshot-LINE01.jpg)
 
@@ -17,7 +17,7 @@ Notificate number of subscriber of specific Youtube Channel via LINE once a day
 * Python 3
 * Dcoker
 
-## Install & Run
+## Install
 ```
 git clone https://github.com/shipwebdotjp/youtubechecker
 cd youtubechecker
@@ -25,15 +25,15 @@ vi ./app/.env
 LINE_TOKEN=<LINE NOTIFY TOKEN>
 YOUTUBE_KEY=<GCP KEY>
 :wq
-echo 'Youtube channel ID' > idlist.txt
+echo 'Youtube channel ID' > ./app/idlist.txt
 ```
 
-### Docker
+### Run with Docker
 ```
 docker-compose up -d --build
 ```
 
-### Standalone Python
+### Run with Standalone Python
 ```
 pip install -r requirements.txt
 nohup python ./app/youtubechecker.py &
