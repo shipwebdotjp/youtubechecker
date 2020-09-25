@@ -43,6 +43,8 @@ nohup python ./app/youtubechecker.py &
 ## Author
 ship [Youtube channel](https://www.youtube.com/channel/UCne2IBkAj3JoyzNAOzXxKMg)
 
+## Youtube Video
+[![thumbnail](http://img.youtube.com/vi/JO33NnIL6es/0.jpg)](http://www.youtube.com/watch?v=JO33NnIL6es "Python Programming")
 
 ## License
 MIT License
