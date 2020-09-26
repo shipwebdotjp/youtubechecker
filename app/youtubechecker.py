@@ -116,7 +116,7 @@ def job(): # Youtube Data APIへアクセスする
                 'commentCount': item['statistics']['commentCount']
             } # 次回の参照用に保存するリストを新たに作成
             new_history = {
-                'data': datetime.datetime.now().strftime('%y/%m/%d %H:%M:%S'),
+                'date': datetime.datetime.now().strftime('%y/%m/%d %H:%M:%S'),
                 'subscriberCount':item['statistics']['subscriberCount'],
                 'viewCount': item['statistics']['viewCount'],
                 'videoCount': item['statistics']['videoCount'],
