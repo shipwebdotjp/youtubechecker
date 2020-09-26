@@ -7,10 +7,10 @@ Notificate number of subscriber of specific Youtube Channel via LINE once a day.
 
 ## Setting
 1.input LINE Notify token and Google Data API Key to .env file.  
-2.add Youtube channel ID to idlist.txt (1 id per 1 line)  
+2.write Youtube channel ID to idlist.txt (1 id per 1 line)  
 
 1..envファイルにLINE Notifyトークンと，Google Data APIのキーを記入  
-2.idlist.txtファイルにチェックしたいYoutubeチャンネルIDを一行ごとに一つ記載  
+2.idlist.txtファイルを作成しチェックしたいYoutubeチャンネルIDを一行ごとに一つ記載  
 
 
 ## Requirements
