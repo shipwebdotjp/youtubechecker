@@ -5,3 +5,4 @@ channel/
 .devcontainer/
 channels.csv
 idlist.txt
+sqlite_db

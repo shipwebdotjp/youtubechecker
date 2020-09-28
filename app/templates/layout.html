@@ -10,6 +10,16 @@
 <body>
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <a class="navbar-brand" href="{{url_for('main')}}">Youtube checker</a>
+    <div class="collapse navbar-collapse" id="navbarText">
+        <span class="navbar-text">
+            {% if current_user.is_authenticated %}
+            {{current_user.name}}
+            <a href="{{ url_for('logout') }}">Sign Out</a>
+            {% else %}
+            <a href="{{ url_for('login') }}">LINE Login</a>
+            {% endif %}
+        </span>
+    </div>
 </nav>
 <div class="container">
     <h1 class="mt-4">{{ title }}</h1>
