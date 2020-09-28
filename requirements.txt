@@ -2,3 +2,5 @@ requests
 google-api-python-client
 schedule
 python-dotenv
+Flask-Login
+oauthlib
