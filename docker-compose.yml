@@ -2,5 +2,12 @@
 services:
   python:
     build: .
+    container_name: youtubechecker-app
+    ports:
+      - "5000:5000"
+    environment:
+      TZ: Asia/Tokyo
+      FLASK_ENV: development
+      FLASK_APP: myapp.py
     volumes:
       - ./app:/workspace/app

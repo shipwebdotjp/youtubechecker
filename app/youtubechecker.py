@@ -5,6 +5,7 @@ import schedule
 import time
 import csv
 import datetime
+import re
 from apiclient.discovery import build
 from googleapiclient import errors
 import settings
@@ -69,6 +70,10 @@ def send_line_notify(notification_message): # LINE Notifyで通知する
     data = {'message': f'{notification_message}'}
     requests.post(line_notify_api, headers = headers, data = data)
 
+def check_channelid(channelid):
+    return re.match(r'^UC[a-zA-Z0-9_-]+$',channelid)
+
+
 def job(): # Youtube Data APIへアクセスする
     APIKEY = settings.YOUTUBE_KEY
     idfilepath = os.path.join(os.path.dirname(__file__), 'idlist.txt') # 調査するIDが書かれたファイル
@@ -125,9 +130,12 @@ def job(): # Youtube Data APIへアクセスする
             add_new_history(item['id'],new_history) # 各種データの履歴を保存
             print('Channel: '+item['snippet']['title']+' Subscriber: '+item['statistics']['subscriberCount']+ ' Change: '+change+' viewCount: '+item['statistics']['viewCount']+ ' Change: '+viewCountchange)
             # リストにチャンネルごとの結果を追加
-            result.append(item['snippet']['title']+' Subscriber: '+"{:,}".format(int(item['statistics']['subscriberCount']))+ ' ('+change+')'+' viewCount: '+"{:,}".format(int(item['statistics']['viewCount']))+ ' ('+viewCountchange+')')
-
-        send_line_notify('\n'+'\n'.join(result)) # 結果が入ったリストを改行で結合させて，LINE Notifyで結果をLINEに送信する
+            result.append(item['snippet']['title']+' Subscriber: '+"{:,}".format(int(item['statistics']['subscriberCount']))+ ' ('+change+')'+' view: '+"{:,}".format(int(item['statistics']['viewCount']))+ ' ('+viewCountchange+')')
+        
+        n = 10
+        for split_result in [result[idx:idx + n] for idx in range(0,len(result), n)]: # リストを10ずつ分割（長すぎると切れるため）
+            send_line_notify('\n'+'\n'.join(split_result)) # 結果が入ったリストを改行で結合させて，LINE Notifyで結果をLINEに送信する
+        
         channelcsv_save(new_channel_dict,channel_dict_path) # 今回取得したデータを次回増減を出すために保存
     except errors.HttpError as err:
         # HTTPエラーが生じた場合は，エラーメッセージを表示。
@@ -135,4 +143,5 @@ def job(): # Youtube Data APIへアクセスする
         print(err._get_reason())
         send_line_notify(err._get_reason()) # LINEでもエラーを通知
 
-main() #メイン関数を呼び出し
+if __name__ == '__main__':
+	main() #メイン関数を呼び出し
