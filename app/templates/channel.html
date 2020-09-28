@@ -1,0 +1,31 @@
+{%- extends "layout.html" %}
+{%- block content %}
+<table>
+    <tr>
+        <th>id</th>
+        <td>{{ data['id'] }}</td>
+    </tr>
+    <tr>
+        <th>title</th>
+        <td>{{ data['title'] }}</td>
+    </tr>
+    <tr>
+        <th>subscriber</th>
+        <td>{{ "{:,}".format(data['subscriberCount'] | int) }}</td>
+    </tr>
+    <tr>
+        <th>view</th>
+        <td>{{ "{:,}".format(data['viewCount'] | int) }}</td>
+    </tr>
+    <tr>
+        <th>video</th>
+        <td>{{ "{:,}".format(data['videoCount'] | int) }}</td>
+    </tr>
+    <tr>
+        <th>comment</th>
+        <td>{{ "{:,}".format(data['commentCount']| int) }}</td>
+    </tr>
+</table>
+<a href="{{ url_for('download', channelid=data['id'])}}" class="btn btn-primary btn-lg btn-block">CSV Download</a><br>
+<a href="https://www.youtube.com/channel/{{ data['id'] }}" class="btn btn-secondary btn-lg">Go to Youtube</a><br>
+{%- endblock %}
