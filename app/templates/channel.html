@@ -1,31 +1,31 @@
 {%- extends "layout.html" %}
 {%- block content %}
-<table>
+<table class="table table-bordered">
     <tr>
-        <th>id</th>
-        <td>{{ data['id'] }}</td>
+        <th scope="row">Channel ID</th>
+        <td>{{ data['channelid'] }}</td>
     </tr>
     <tr>
-        <th>title</th>
+        <th scope="row">Channel Name </th>
         <td>{{ data['title'] }}</td>
     </tr>
     <tr>
-        <th>subscriber</th>
+        <th scope="row">Subscriber</th>
         <td>{{ "{:,}".format(data['subscriberCount'] | int) }}</td>
     </tr>
     <tr>
-        <th>view</th>
+        <th scope="row">View</th>
         <td>{{ "{:,}".format(data['viewCount'] | int) }}</td>
     </tr>
     <tr>
-        <th>video</th>
+        <th scope="row">Video</th>
         <td>{{ "{:,}".format(data['videoCount'] | int) }}</td>
     </tr>
     <tr>
-        <th>comment</th>
+        <th scope="row">Comment</th>
         <td>{{ "{:,}".format(data['commentCount']| int) }}</td>
     </tr>
 </table>
-<a href="{{ url_for('download', channelid=data['id'])}}" class="btn btn-primary btn-lg btn-block">CSV Download</a><br>
-<a href="https://www.youtube.com/channel/{{ data['id'] }}" class="btn btn-secondary btn-lg">Go to Youtube</a><br>
+<a href="{{ url_for('download', channelid=data['channelid'])}}" class="btn btn-primary btn-lg btn-block">CSV Download</a><br>
+<a href="https://www.youtube.com/channel/{{ data['channelid'] }}" class="btn btn-secondary btn-lg">Go to Youtube</a><br>
 {%- endblock %}

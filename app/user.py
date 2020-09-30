@@ -32,3 +32,12 @@ class User(UserMixin):
             (id_, name, profile_pic),
         )
         db.commit()
+
+    @staticmethod
+    def delete(id_):
+        db = get_db()
+        db.execute(
+            "DELETE FROM user WHERE id = ?",
+            (id_),
+        )
+        db.commit()

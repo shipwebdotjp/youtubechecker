@@ -1,6 +1,6 @@
 # http://flask.pocoo.org/docs/1.0/tutorial/database/
 import sqlite3
-
+import os
 import click
 from flask import current_app, g
 from flask.cli import with_appcontext
@@ -8,8 +8,9 @@ from flask.cli import with_appcontext
 
 def get_db():
     if "db" not in g:
+        path = os.path.join(os.path.dirname(__file__),'sqlite_db')
         g.db = sqlite3.connect(
-            "sqlite_db", detect_types=sqlite3.PARSE_DECLTYPES
+            path, detect_types=sqlite3.PARSE_DECLTYPES
         )
         g.db.row_factory = sqlite3.Row
 
@@ -29,6 +30,11 @@ def init_db():
     with current_app.open_resource("schema.sql") as f:
         db.executescript(f.read().decode("utf8"))
 
+def query_db(query, args=(), one=False):
+    cur = get_db().execute(query, args)
+    rv = cur.fetchall()
+    cur.close()
+    return (rv[0] if rv else None) if one else rv
 
 @click.command("init-db")
 @with_appcontext

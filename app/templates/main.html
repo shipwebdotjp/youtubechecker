@@ -5,7 +5,6 @@
 	{% if data %}
 	<thead>
 	<tr>
-		<th scope="col"> Channel ID </th>
 	   <th scope="col"> Channel Name </th>
 	   <th scope="col"> Subscriber </th>
 	   <th scope="col"> View </th>
@@ -13,7 +12,6 @@
 	   <th scope="col"> Comment </th>
 	   <th scope="col">CSV</th>
 	   <th scope="col">Link</th>
-	   <th scope="col">Del</th>
 	</tr>
 	</thead>
 	{% endif %}
@@ -21,7 +19,6 @@
 	<!-- table rows -->
 	{% for dict_item in data %}
 	<tr>
-	   <td> {{ dict_item['channelid'] }} </td>
 	   <td><a href="{{ url_for('channel', channelid=dict_item['channelid'])}}">{{ dict_item['title'] }}</a></td>
 	   <td> {{ "{:,}".format(dict_item['subscriberCount'] | int) }} </td>
 	   <td> {{ "{:,}".format(dict_item['viewCount'] | int) }} </td>
@@ -29,21 +26,9 @@
 	   <td> {{ "{:,}".format(dict_item['commentCount'] | int) }} </td>
 	   <td><a href="{{ url_for('download', channelid=dict_item['channelid'])}}">CSV</a></td>
 	   <td><a href="https://www.youtube.com/channel/{{ dict_item['channelid'] }}">Youtube</a><br></td>
-	   <td><a href="{{ url_for('idlist', delid=dict_item['channelid'])}}" class="btn btn-secondary btn-block">DEL</a></td>
 	</tr>
 	{% endfor %}
 	</tbody>
   </table>
-  <form action="{{url_for('idlist')}}" method="POST" class="form-inline">
-    <div class="form-group  mb-2">
-        <label for="exampleFormControlTextarea1">Add new channel ID/URL (1 id per 1 line)</label>
-	</div>
-	<div class="form-group mx-sm-3 mb-2">
-		<textarea class="form-control" id="exampleFormControlTextarea1" rows="1" cols=45  placeholder="Channel ID" name=lists></textarea>
-  </div>
-  <button type="submit" class="btn btn-primary mb-2">Add</button>
-</form>
-  <a href="{{ url_for('download', channelid='channels')}}" class="btn btn-primary btn-lg btn-block">Channels CSV Download</a><br>
-  <a href="{{ url_for('docheck')}}" class="btn btn-secondary btn-lg btn-block">Do check at once</a><br>
 
-  {%- endblock %}
+{%- endblock %}
