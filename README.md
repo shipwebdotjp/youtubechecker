@@ -5,62 +5,73 @@ Add subscriber, view count and video count to each channel file as csv file.
 So, you can see the transition in the data. To use Excel you can also draw a graph.
 
 指定したYoutubeチャンネルの登録者数，総再生数と増減を毎日一回LINEで通知  
-登録者数，再生数，動画数のデータをチャンネルごとにCSVファイルに記録していく
+登録者数，再生数，動画数のデータをチャンネルごとにCSVファイルでダウンロード可能
 それらのデータの推移知ることができ，Excelなどで読み込むことでグラフ表示も可能。
 
 ![LINE](https://blog.shipweb.jp/wp-content/uploads/2020/09/Screenshot-LINE01.jpg)
 
-## Setting
-1.input LINE Notify token and Google Data API Key to .env file.  
-2.write Youtube channel ID to idlist.txt (1 id per 1 line)  
+## Need API Keys
+*LINE Notify token(for developers)
+*LINE login channel(ID and secret)
+*LINE messaging channel access token
+*LINE Notify service(Client ID and secret)
+*Google Data API Key
 
-1..envファイルにLINE Notifyトークンと，Google Data APIのキーを記入  
-2.idlist.txtファイルを作成しチェックしたいYoutubeチャンネルIDを一行ごとに一つ記載  
+##必要なAPI
+*LINE Notify トークン(開発者向け)
+*LINE ログインチャンネル(IDとシークレット)
+*LINE メッセージングチャンネル アクセストークン
+*LINE Notify サービス(クライアントIDとシークレット)
+*Google Data APIキー
+
+## Setting
+1.input tokens to .env file.  
+
+1..envファイルに各種トークンとキーを記入  
 
 
 ## Requirements
-* Python 3
 * Dcoker
+* Python 3
+* Flask
 
 ## Install
 ```
 git clone https://github.com/shipwebdotjp/youtubechecker
 cd youtubechecker
+mkdir ./app/log
 vi ./app/.env
-LINE_TOKEN=<LINE NOTIFY TOKEN>
-YOUTUBE_KEY=<GCP KEY>
+--Edit Your Keys
 :wq
-echo 'Youtube channel ID' > ./app/idlist.txt
 ```
 
 ### Run with Docker
 ```
 docker-compose up -d --build
+docker-compose exec python flask initdb
+chmod 777 ./app
+chmod 666 ./app/sqlite_db
 ```
-
-### Run with Standalone Python
-```
-pip install -r requirements.txt
-nohup python ./app/youtubechecker.py &
-```
+Access http://localhost:5000/  
 
 ## Data file output
 'channels.csv' file  contains current data of all channels.  
 If you want to see the history, see the 'channel' directory. You can find 'channel id'.csv file.  
 
-## CSV file format
-### channels.csv
+## You can download CSV file format file
+### channels-%y%M%D.csv for example shipweb-201002.csv
 ```
-"id","title","subscriberCount","viewCount","videoCount","commentCount"
-"UCne2IBkAj3JoyzNAOzXxKMg","shipweb","51","17418","17","0"
+"Channel Id","Channel name","Published at","subscriberCount","subscriberChange","viewCount","viewChange","videoCount","videoChange","commentCount","commentChange"
+"UCne2IBkAj3JoyzNAOzXxKMg","shipweb","2015-11-29 10:55:00","52","0","17841","0","17","0","0","0"
 ```
-### 'channelid'.csv for example UCne2IBkAj3JoyzNAOzXxKMg.csv
+### 'Channel name'-%y%M%D.csv for example shipweb-201002.csv
 ```
-date,subscriberCount,viewCount,videoCount,commentCount
-20/09/26 07:00:53,51,17413,17,0
-20/09/27 07:00:32,51,17417,17,0
-20/09/28 07:00:46,51,17417,17,0
+"Date","subscriberCount","subscriberChange","viewCount","viewChange","videoCount","videoChange","commentCount","commentChange"
+"2020-10-02 00:02:01","52","0","17841","0","17","0","0","0"
 ```
+
+## Demo site
+[Youtube Checker](https://ytc.shipweb.jp/)
 
 ## Author
 ship [Youtube channel](https://www.youtube.com/channel/UCne2IBkAj3JoyzNAOzXxKMg)

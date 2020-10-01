@@ -114,7 +114,7 @@ def callback():
         return redirect(url_for('main'))
 
     state = request.args.get("state")
-    if state != session["state"]:
+    if state != session.get("state"):
         flash('Error! state not match.', 'alert-warning')
         return redirect(url_for('main'))
     
@@ -164,7 +164,7 @@ def callback():
         return redirect(url_for('pushtime'))
 
     login_user(user)
-    return redirect(url_for('main'))
+    return redirect(url_for('channellist'))
 
 @app.route("/logout")
 @login_required
@@ -254,7 +254,7 @@ def notifycallback():
         return redirect(url_for('main'))
 
     state = request.args.get("state")
-    if state != session["state"]:
+    if state != session.get("state"):
         flash('Error! state not match.', 'alert-warning')
         return redirect(url_for('main'))
     session.pop('state', None)
