@@ -3,6 +3,7 @@ __pycache__/
 doc/
 channel/
 .devcontainer/
+log/
 channels.csv
 idlist.txt
 sqlite_db

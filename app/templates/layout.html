@@ -27,6 +27,7 @@
 		           {{current_user.name}}
 		        </a>
 		        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+					<a class="dropdown-item" href="{{ url_for('channellist') }}">Channels</a>
 		           <a class="dropdown-item" href="{{ url_for('account') }}">Account</a>
 		           <a class="dropdown-item" href="{{ url_for('logout') }}">Sign Out</a>
 		         </div>

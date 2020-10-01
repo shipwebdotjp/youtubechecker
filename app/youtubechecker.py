@@ -1,55 +1,21 @@
 import os
 import requests
 import pickle
-import schedule
 import time
 import csv
 import datetime
 import re
 import json
 import sqlite3
+import click
 from apiclient.discovery import build
 from googleapiclient import errors
+from db import init_db_command, get_db, query_db
+from flask.cli import with_appcontext
 import settings
 
 def main(): # メイン関数
     job() # 起動時に一回実行
-    #schedule.every().day.at("23:30").do(job) # 毎日23:30分に実行 UTC+0で記載
-    #while True:
-    #    schedule.run_pending()
-    #    time.sleep(1)
-
-def pickle_dump(obj, path): # データ保存用
-    with open(path, mode='wb') as f:
-        pickle.dump(obj,f)
-
-def pickle_load(path): # データ読み出し用
-    if os.path.exists(path):
-        with open(path, mode='rb') as f:
-            data = pickle.load(f)
-            return data
-    else:
-        return None
-
-def channelcsv_load(path): 
-    data = {}
-    if os.path.exists(path):
-        with open(path, mode='r') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                data[row['id']] = row
-            return data
-    else:
-        return data
-
-def channelcsv_save(data,path): 
-    k_list = list(data.keys())
-    header = data[k_list[0]].keys()
-    with open(path, mode='w') as f:
-        writer = csv.DictWriter(f,delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL, fieldnames=header)
-        writer.writeheader()
-        for k,v in data.items():
-            writer.writerow(v)
 
 def add_new_history(id,newdata):
     header = newdata.keys()
@@ -65,12 +31,36 @@ def add_new_history(id,newdata):
 
         writer.writerow(newdata)
 
-def send_line_notify(notification_message): # LINE Notifyで通知する
-    line_notify_token = settings.LINE_TOKEN
+def send_line_notify(notification_message, notify_token=settings.LINE_TOKEN): # LINE Notifyで通知する
+    line_notify_token = notify_token
     line_notify_api = 'https://notify-api.line.me/api/notify'
     headers = {'Authorization': f'Bearer {line_notify_token}'}
     data = {'message': f'{notification_message}'}
-    requests.post(line_notify_api, headers = headers, data = data)
+    res = requests.post(line_notify_api, headers = headers, data = data)
+    if res.status_code == 401:
+        notify_revoke_from_token(line_notify_token)
+
+def notify_revoke_from(user_id):
+    userdata = query_db('select notify_token from user where id = ?',(user_id,),True)
+    line_notify_token = userdata['notify_token']
+    line_notify_api = 'https://notify-api.line.me/api/revoke'
+    headers = {'Authorization': f'Bearer {line_notify_token}'}
+    data = {}
+    res = requests.post(line_notify_api, headers = headers, data = data) 
+    if res.status_code == 401:
+        retval = 'Already unlinked.'
+    else:
+        retval = 'Unlinked.'
+    notify_revoke_from_token(line_notify_token)
+    return retval
+
+def notify_revoke_from_token(line_notify_token):
+    db = get_db()
+    db.execute(
+        "UPDATE user SET notify_token = null where notify_token = ?",
+        (line_notify_token,),
+    )
+    db.commit()
 
 def check_channelid(channelid):
     return re.search('(UC[a-zA-Z0-9_-]+)',channelid)
@@ -118,20 +108,13 @@ def getChannelData(channelids): # Youtube Data APIチャンネル情報取得
         return {'error':err._get_reason()}
 
 def job(): # Youtube Data APIへアクセスする
-    dbpath = os.path.join(os.path.dirname(__file__),'sqlite_db')
-    connection = sqlite3.connect(dbpath)
-    db = connection.cursor()
-    db.row_factory = sqlite3.Row
+    db = get_db()
     APIKEY = settings.YOUTUBE_KEY
     dataFinish = False
     start=0
     while dataFinish == False:
-        cur = db.execute('select channelid from channel limit ?,50', (start,))
-        rv = cur.fetchall()
-        #cur.close()
-        idlines = rv # 読み込んだ後，改行で分割して，リストへ代入
-        print (str(start) + ' '+ str(len(idlines)))
-        if len(idlines) == 0:
+        idlines = query_db('select channelid from channel limit ?,50', [start])
+        if not idlines:
             break
         start += 50
         idlist = list()
@@ -155,10 +138,7 @@ def job(): # Youtube Data APIへアクセスする
             print(err._get_reason())
             send_line_notify(err._get_reason()) # LINEでもエラーを通知
         for item in response['items']: # 帰ってきた結果をチャンネルごと処理
-            cur = db.execute('select * from channel where channelid = ?', (item['id'],))
-            rv = cur.fetchall()
-            #cur.close()
-            curdata = rv[0]
+            curdata = query_db('select * from channel where channelid = ?', [item['id']], True)
             if curdata: # 以前のデータが保存されているかどうか
                 subscriberChange = int(item['statistics']['subscriberCount']) - int(curdata['subscriberCount'])
                 viewChange = int(item['statistics']['viewCount']) - int(curdata['viewCount'])
@@ -189,17 +169,28 @@ def job(): # Youtube Data APIへアクセスする
                         item['statistics']['commentCount'],
                         subscriberChange,viewChange,videoChange,commentChange),
             )
-            connection.commit() 
-            #print('Channel: '+item['snippet']['title']+' Subscriber: '+item['statistics']['subscriberCount']+ ' Change: '+str(subscriberChange)+' viewCount: '+item['statistics']['viewCount']+ ' Change: '+str(viewCountchange))
-            # リストにチャンネルごとの結果を追加
-            #result.append(item['snippet']['title']+' Subscriber: '+"{:,}".format(int(item['statistics']['subscriberCount']))+ ' ('+change+')'+' view: '+"{:,}".format(int(item['statistics']['viewCount']))+ ' ('+viewCountchange+')')
-        
-            #n = 10
-            #for split_result in [result[idx:idx + n] for idx in range(0,len(result), n)]: # リストを10ずつ分割（長すぎると切れるため）
-            #    send_line_notify('\n'+'\n'.join(split_result)) # 結果が入ったリストを改行で結合させて，LINE Notifyで結果をLINEに送信する
-            
-            #channelcsv_save(new_channel_dict,channel_dict_path) # 今回取得したデータを次回増減を出すために保存
-    connection.close()
+            db.commit()
 
-if __name__ == '__main__':
-	main() #メイン関数を呼び出し
+def send_notify_each_user():
+    nowtime = datetime.datetime.now().strftime('%H%M')
+    for user in query_db('select id,notify_token from user where push_time = ?', [nowtime]):
+        if user['notify_token']:
+            send_notify_from_user(user['id'],user['notify_token'])
+            print('Send notify to '+user['id'])
+    print("finished at "+nowtime)    
+
+def send_notify_from_user(user_id,notify_token):
+    result = list()
+    for channel in query_db('select user_channel.channelid,channel.title,channel.publish_at,channel.subscriberCount,channel.viewCount,channel.videoCount,channel.commentCount,channel.subscriberChange,channel.viewChange,channel.videoChange,channel.commentChange from user_channel left outer join channel on user_channel.channelid = channel.channelid where user_channel.userid = ?',
+        [user_id]):
+        result.append(
+            channel['title']+
+            ' Subscriber: '+"{:,}".format(int(channel['subscriberCount']))+ ' ('+str(change_format(channel['subscriberChange']))+')'+
+            ' View: '+"{:,}".format(int(channel['viewCount']))+ ' ('+str(change_format(channel['viewChange']))+')')
+    n = 10
+    for split_result in [result[idx:idx + n] for idx in range(0,len(result), n)]: # リストを10ずつ分割（長すぎると切れるため）
+        send_line_notify('\n'+'\n'.join(split_result),notify_token) # 結果が入ったリストを改行で結合させて，LINE Notifyで結果をLINEに送信する
+
+def change_format(change):
+    change = ('+' if change > 0 else '') + "{:,}".format(change) # プラスの場合は先頭に＋をつける
+    return change

@@ -36,12 +36,13 @@ def query_db(query, args=(), one=False):
     cur.close()
     return (rv[0] if rv else None) if one else rv
 
-@click.command("init-db")
-@with_appcontext
 def init_db_command():
-    """Clear the existing data and create new tables."""
-    init_db()
-    click.echo("Initialized the database.")
+    try:
+        init_db()
+    except sqlite3.OperationalError:
+        click.echo("Database already exists.")
+    else:
+        click.echo("Initialized the database.")
 
 
 def init_app(app):

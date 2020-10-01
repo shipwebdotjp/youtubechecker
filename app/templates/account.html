@@ -13,6 +13,20 @@
         <th scope="row">Profile picture</th>
         <td><img src="{{current_user.profile_pic}}" class="img-thumbnail" width=120></td>
     </tr>
+    <tr>
+        <th scope="row">Notify time</th>
+        <td>{{data.push_time}} <a href="{{ url_for('pushtime')}}" class="btn btn-primary mb-2">Update</a></td>
+    </tr>
+    <tr>
+        <th scope="row">LINE Notify linkage</th>
+        <td>
+            {% if data.notify_token %}
+             Linked <a href="{{ url_for('notify_revoke')}}" class="btn btn-primary mb-2">Revoke</a>
+            {% else %}
+             Not linked <a href="{{ url_for('notify')}}" class="btn btn-primary mb-2">Link</a>
+            {% endif %}
+        </td>
+    </tr>    
 </table>
 <a href="{{ url_for('account_delete')}}" class="btn btn-primary btn-lg btn-block">Delete Account</a><br>
 {%- endblock %}

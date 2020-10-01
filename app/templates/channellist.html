@@ -29,12 +29,12 @@
 	   <td> {{ "{:,}".format(dict_item['commentCount'] | int) }} </td>
 	   <td><a href="{{ url_for('download', channelid=dict_item['channelid'])}}">CSV</a></td>
 	   <td><a href="https://www.youtube.com/channel/{{ dict_item['channelid'] }}">Youtube</a><br></td>
-	   <td><a href="{{ url_for('idlist', delid=dict_item['channelid'])}}" class="btn btn-secondary btn-block">DEL</a></td>
+	   <td><a href="{{ url_for('channellist', delid=dict_item['channelid'])}}" class="btn btn-secondary btn-block">DEL</a></td>
 	</tr>
 	{% endfor %}
 	</tbody>
   </table>
-  <form action="{{url_for('idlist')}}" method="POST" class="form-inline">
+  <form action="{{url_for('channellist')}}" method="POST" class="form-inline">
     <div class="form-group  mb-2">
         <label for="exampleFormControlTextarea1">Add new channel ID/URL (1 id per 1 line)</label>
 	</div>

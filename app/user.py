@@ -38,6 +38,6 @@ class User(UserMixin):
         db = get_db()
         db.execute(
             "DELETE FROM user WHERE id = ?",
-            (id_),
+            (id_,),
         )
         db.commit()
