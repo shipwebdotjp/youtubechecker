@@ -1,2 +1,2 @@
 * * * * * cd /workspace/app && /usr/local/bin/flask minly_job > /workspace/app/log/minly.txt
-2 0 * * * cd /workspace/app && /usr/local/bin/flask dayly_job > /workspace/app/log/daily.txt
+2 17 * * * cd /workspace/app && /usr/local/bin/flask dayly_job > /workspace/app/log/daily.txt

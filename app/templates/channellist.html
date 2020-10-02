@@ -1,6 +1,18 @@
 {%- extends "layout.html" %}
 {%- block content %}
-<table class="table table-bordered table-striped">
+{% if err_msg %}
+<div class="card">
+	<div class="card-header">
+	  Error
+	</div>
+	<div class="card-body">
+		{% for err in err_msg %}
+		<p class="card-text">{{err}}</p>
+		{% endfor %}
+	</div>
+  </div>
+{% endif %} 
+  <table class="table table-bordered table-striped">
 	<!-- table header -->
 	{% if data %}
 	<thead>
@@ -43,7 +55,8 @@
   </div>
   <button type="submit" class="btn btn-primary mb-2">Add</button>
 </form>
+{% if session.newregister != 1 %}
   <a href="{{ url_for('download', channelid='channels')}}" class="btn btn-primary btn-lg btn-block">Channels CSV Download</a><br>
   <a href="{{ url_for('docheck')}}" class="btn btn-secondary btn-lg btn-block">Do check at once</a><br>
-
-  {%- endblock %}
+{% endif %}
+{%- endblock %}

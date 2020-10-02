@@ -37,9 +37,11 @@ def load_user(user_id):
 @login_manager.unauthorized_handler
 def unauthorized():
     newdata = {
-                 'message' : 'You must be logged in to access this content.',
-                 'style':'alert-danger'
-             }
+            'header' : 'Sorry',
+            'message' : 'You must be logged in to access this content.',
+            'next_url': url_for('login'),
+            'next_text': 'Login'
+        }
     return render_template('message.html',title='Unauthorized',data=newdata), 403
 
 @app.before_request
@@ -221,7 +223,7 @@ def pushtime():
             db.commit()
             flash('Your notify time was updated!', 'alert-success')
             if session.get("newregister") == 1:
-                return redirect(url_for("notify"))
+                return redirect(url_for("gonotify"))
             #else:
             #    return redirect(url_for("account"))
         else:
@@ -233,6 +235,17 @@ def pushtime():
         min = userdata['push_time'][2:]
     newdata = {'title':'Notify time','hour':hour,'min':min}
     return render_template('pushtime.html',title=newdata['title'],data=newdata)
+
+@app.route('/gonotify')
+@login_required
+def gonotify():
+        newdata = {
+            'header' : 'Next step',
+            'message' : 'Link with LINE Notify to your account.',
+            'next_url': url_for('notify'),
+            'next_text': 'Next'
+        }
+        return render_template('message.html',title='LINE Notify',data=newdata)
 
 @app.route('/notify')
 @login_required
@@ -276,6 +289,7 @@ def notifycallback():
             (oauth_res.get('access_token'), current_user.id),
         )
         db.commit()
+        flash('Line notify has been successfully linked!', 'alert-success')
         if session.get("newregister") == 1:
             return redirect(url_for("channellist"))
         else:
@@ -293,26 +307,40 @@ def notify_revoke():
 @app.route("/channellist", methods=["GET", "POST"])
 @login_required
 def channellist():
+    err_msg = list()
     if request.method == "POST":
+        clean_idlist = list()
         check_ids = list()
         new_channels = list()
         exists_ids = list()
+        
+        isSuccess = False
         newids = request.form["lists"].splitlines()
         for channelid in newids:
             matched = youtubechecker.check_channelid(channelid)
             if matched:
-                channelid = matched.group()
-                if not query_db('SELECT * FROM user_channel WHERE userid = ? AND channelid = ?',[current_user.id, channelid],True):
-                    check_ids.append((current_user.id, channelid))
-                else:
-                    exists_ids.append(channelid)
+                clean_idlist.append(matched.group())
+            elif re.search('user/([a-zA-Z0-9_-]+)',channelid):
+                matched = re.search('user/([a-zA-Z0-9_-]+)',channelid)
+                clean_idlist.extend(youtubechecker.name_to_id(matched.group(1)))
+            elif re.search('c/([a-zA-Z0-9_-]+)',channelid):
+                matched = re.search('c/([a-zA-Z0-9_-]+)',channelid)
+                err_msg.append('Custom URL like c/xxxx is not supported. Please use channel id like UCXXXX.')
+                #clean_idlist.extend(youtubechecker.custom_to_id(matched.group(1))) # because search uses high amount of quata.
             else:
-                flash('The channels id is wrong.('+matched+')', 'alert-danger')
+                err_msg.append('The channels id is wrong.('+channelid+')')
+        for channelid in clean_idlist:
+            if not query_db('SELECT * FROM user_channel WHERE userid = ? AND channelid = ?',[current_user.id, channelid],True):
+                check_ids.append((current_user.id, channelid))
+            else:
+                exists_ids.append(channelid)
+            
         if check_ids:
             exists_channels = query_db('SELECT * FROM user_channel WHERE userid = ?',[current_user.id])
             if len(exists_channels) + len(check_ids) > int(settings.MAX_CHANNELS_PER_USER):
-                flash('Your channels already too many. max '+str(settings.MAX_CHANNELS_PER_USER), 'alert-danger') 
-            else:  
+                err_msg.append('Your channels already too many. max '+str(settings.MAX_CHANNELS_PER_USER)) 
+            else:
+                isSuccess = True  
                 db = get_db()
                 db.executemany(
                         "INSERT INTO user_channel (userid, channelid) VALUES (?, ?)",
@@ -321,14 +349,11 @@ def channellist():
                 db.commit()
                 flash(str(len(check_ids))+' channels were added.', 'alert-success')
         if exists_ids:
-            flash('The channels already exists.('+','.join(exists_ids)+')', 'alert-warning')
+            err_msg.append('The channels already exists.('+','.join(exists_ids)+')')
 
-        for channelid in newids:
-            matched = youtubechecker.check_channelid(channelid)
-            if matched:
-                channelid = matched.group()
-                if not query_db('select * from channel where channelid = ?',[channelid],True):
-                    new_channels.append(channelid)
+        for channelid in clean_idlist:
+            if not query_db('select * from channel where channelid = ?',[channelid],True):
+                new_channels.append(channelid)
 
         if new_channels:
             channeldata = youtubechecker.getChannelData(new_channels) 
@@ -340,13 +365,13 @@ def channellist():
                     item['viewCount'],item['videoCount'],item['commentCount'],0,0,0,0),
                 )   
             db.commit() 
-        if session.get("newregister") == 1:
+        if isSuccess and session.get("newregister") == 1:
             session.pop('newregister', None)
             newdata = {
                 'message' : 'Complete! Your account is ready now!',
                 'style':'alert-success'
             }
-            return render_template('message.html',title='Finished!',data=newdata)
+            return render_template('finished.html',title='Finished!',data=newdata)
 
     if request.args.get('delid'):
         matched = youtubechecker.check_channelid(request.args.get('delid'))
@@ -362,13 +387,32 @@ def channellist():
             flash('The channels has been deleted.', 'alert-warning')
 
     newdata = query_db('select user_channel.channelid,channel.title,channel.publish_at,channel.subscriberCount,channel.viewCount,channel.videoCount,channel.commentCount,channel.subscriberChange,channel.viewChange,channel.videoChange,channel.commentChange from user_channel left outer join channel on user_channel.channelid = channel.channelid where user_channel.userid = ?', [current_user.id])
-    return render_template('channellist.html',title='Channels',data=newdata)
+    return render_template('channellist.html',title='Channels',data=newdata, err_msg=err_msg)
 
+@app.route("/test")
+def test():
+    return ''
 
 @app.route("/about")
 def about():
     newdata = {'title':'About'}
     return render_template('about.html',title=newdata['title'],data=newdata)
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
+@app.route('/apple-touch-icon.png')
+def appleicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'apple-touch-icon.png', mimetype='image/png')
+
+@app.route('/logo.png')
+def logo():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'logo.png', mimetype='image/png')
+
 
 @app.cli.command("minly_job")
 @with_appcontext
@@ -395,4 +439,4 @@ def init_db():
     init_db_command()
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=80)

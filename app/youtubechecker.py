@@ -65,6 +65,28 @@ def notify_revoke_from_token(line_notify_token):
 def check_channelid(channelid):
     return re.search('(UC[a-zA-Z0-9_-]+)',channelid)
 
+def name_to_id(name):
+    new_channel_list = list()
+    youtube = build('youtube', 'v3', developerKey=settings.YOUTUBE_KEY)
+    try:
+        response = youtube.channels().list(part='id', forUsername=name).execute() # Youtube APIへのリクエスト作成
+        for item in response['items']:
+            new_channel_list.append(item['id'])
+        return new_channel_list
+    except errors.HttpError as err:
+        return {'error':err._get_reason()}
+
+def custom_to_id(name):
+    youtube = build('youtube', 'v3', developerKey=settings.YOUTUBE_KEY)
+    try:
+        response = youtube.search().list(part='id', type='channel', q=name).execute() # Youtube APIへのリクエスト作成
+        if len(response['items']):
+            item = response['items'][0]
+            return [item['id']['channelId']]
+        return []
+    except errors.HttpError as err:
+        return {'error':err._get_reason()}
+
 def deletechannel(channelid):
     if not query_db('select * from user_channel where channelid = ?',[channelid],True): # 使用しているユーザーがほかにいない
         db = get_db()
@@ -128,7 +150,7 @@ def job(): # Youtube Data APIへアクセスする
         new_channel_dict = {} # データ保存用の新たなリスト
         try:
             response = youtube.channels().list(
-                    part='snippet,statistics',
+                    part='statistics',
                     id=ids,
                     maxResults=50
                 ).execute() # Youtube APIへのリクエスト作成
@@ -151,8 +173,8 @@ def job(): # Youtube Data APIへアクセスする
                 videoChange = 0
                 commentChange = 0
             db.execute(
-                    "UPDATE channel SET title = ?,subscriberCount = ?,viewCount = ?,videoCount = ?,commentCount = ?,subscriberChange = ?,viewChange = ?,videoChange = ?,commentChange = ? WHERE channelid = ?",
-                    (item['snippet']['title'],
+                    "UPDATE channel SET subscriberCount = ?,viewCount = ?,videoCount = ?,commentCount = ?,subscriberChange = ?,viewChange = ?,videoChange = ?,commentChange = ? WHERE channelid = ?",
+                    (
                         item['statistics']['subscriberCount'],
                         item['statistics']['viewCount'],
                         item['statistics']['videoCount'],

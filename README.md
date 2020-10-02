@@ -11,18 +11,18 @@ So, you can see the transition in the data. To use Excel you can also draw a gra
 ![LINE](https://blog.shipweb.jp/wp-content/uploads/2020/09/Screenshot-LINE01.jpg)
 
 ## Need API Keys
-*LINE Notify token(for developers)
-*LINE login channel(ID and secret)
-*LINE messaging channel access token
-*LINE Notify service(Client ID and secret)
-*Google Data API Key
+* LINE Notify token(for developers)
+* LINE login channel(ID and secret)
+* LINE messaging channel access token
+* LINE Notify service(Client ID and secret)
+* Google Data API Key
 
-##必要なAPI
-*LINE Notify トークン(開発者向け)
-*LINE ログインチャンネル(IDとシークレット)
-*LINE メッセージングチャンネル アクセストークン
-*LINE Notify サービス(クライアントIDとシークレット)
-*Google Data APIキー
+## 必要なAPI
+* LINE Notify トークン(開発者向け)
+* LINE ログインチャンネル(IDとシークレット)
+* LINE メッセージングチャンネル アクセストークン
+* LINE Notify サービス(クライアントIDとシークレット)
+* Google Data APIキー
 
 ## Setting
 1.input tokens to .env file.  
@@ -55,10 +55,8 @@ chmod 666 ./app/sqlite_db
 Access http://localhost:5000/  
 
 ## Data file output
-'channels.csv' file  contains current data of all channels.  
-If you want to see the history, see the 'channel' directory. You can find 'channel id'.csv file.  
+You can download CSV file format file  
 
-## You can download CSV file format file
 ### channels-%y%M%D.csv for example shipweb-201002.csv
 ```
 "Channel Id","Channel name","Published at","subscriberCount","subscriberChange","viewCount","viewChange","videoCount","videoChange","commentCount","commentChange"

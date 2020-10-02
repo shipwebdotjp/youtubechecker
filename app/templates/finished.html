@@ -1,0 +1,48 @@
+{%- extends "layout.html" %}
+{%- block content %}
+<div class="alert {{data.style}}" role="alert">{{data.message}}</div>
+{% if current_user.is_authenticated %}
+<div class="card-group">
+    <div class="card">
+    <div class="card-header">
+      Your Channels
+    </div>
+    <div class="card-body">
+      <h5 class="card-title">You can edit your channel list</h5>
+      <p class="card-text">Let's add more Youtube channels</p>
+      <a href="{{ url_for('channellist') }}" class="btn btn-primary">Channels</a>
+    </div>
+    <div class="card-footer text-muted">
+      
+    </div>
+    </div>
+    <div class="card">
+    <div class="card-header">
+        Account
+      </div>
+     <div class="card-body">
+      <h5 class="card-title">Setting Your Account</h5>
+      <p class="card-text">LINE Notify bother you? You can change when it notify here.</p>
+      <a href="{{ url_for('account') }}" class="btn btn-primary">Account</a>
+    </div>
+    <div class="card-footer text-muted">
+      
+    </div>
+    </div>
+
+  <div class="card">
+    <div class="card-header">
+      Sign Out
+    </div>
+    <div class="card-body">
+      <h5 class="card-title">Sign Out from this site</h5>
+      <p class="card-text">If you want to sign out, you can do it. Your channels will keep unless you delete account.</p>
+      <a href="{{ url_for('logout') }}" class="btn btn-primary">Sign Out</a>
+    </div>
+    <div class="card-footer text-muted">
+      
+    </div>
+  </div>
+</div>
+{% endif %}
+{%- endblock %}

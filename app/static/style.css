@@ -2,3 +2,10 @@ h1{
     border-left:7px solid #ccc;
     padding:.8em .9em;
 }
+.navbar-brand {
+    background: url("/logo.png") no-repeat left center;
+    background-size: contain;
+    height: 50px;
+    width: 250px;
+    padding-left: 55px;
+  }
