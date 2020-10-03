@@ -1,11 +1,15 @@
 # Youtube Subscriber Checker
+[![ICON](https://ytc.shipweb.jp/apple-touch-icon.png)](https://ytc.shipweb.jp/ "Youtube Checker")
 
+This is a web service on Python-Flask frame work.  
+You can LINE/Google login and link with LINE Notify. You can also list some Youtube channels id.  
 Notificate number of subscriber and total view count of specific Youtube Channel via LINE once a day.  
-Add subscriber, view count and video count to each channel file as csv file.
-So, you can see the transition in the data. To use Excel you can also draw a graph.
+you can download these data as csv file. The transition includes in the data. To use Excel you can also draw a graph.  
 
+PythonのFlaskフレームワーク上で動くWebサービス。  
+LINE/Googleでのシングルサインオン機能，LINE Notifyとの連携機能を持つ。  
 指定したYoutubeチャンネルの登録者数，総再生数と増減を毎日一回LINEで通知  
-登録者数，再生数，動画数のデータをチャンネルごとにCSVファイルでダウンロード可能
+登録者数，再生数，動画数のデータをチャンネルごとにCSVファイルでダウンロード可能  
 それらのデータの推移知ることができ，Excelなどで読み込むことでグラフ表示も可能。
 
 ![LINE](https://blog.shipweb.jp/wp-content/uploads/2020/09/Screenshot-LINE01.jpg)
@@ -16,6 +20,8 @@ So, you can see the transition in the data. To use Excel you can also draw a gra
 * LINE messaging channel access token
 * LINE Notify service(Client ID and secret)
 * Google Data API Key
+* Google OAuth client ID
+* Google OAuth client secret
 
 ## 必要なAPI
 * LINE Notify トークン(開発者向け)
@@ -23,6 +29,8 @@ So, you can see the transition in the data. To use Excel you can also draw a gra
 * LINE メッセージングチャンネル アクセストークン
 * LINE Notify サービス(クライアントIDとシークレット)
 * Google Data APIキー
+* Google OAuth クライアントID
+* Google OAuth クライアントシークレット
 
 ## Setting
 1.input tokens to .env file.  
@@ -52,12 +60,12 @@ docker-compose exec python flask initdb
 chmod 777 ./app
 chmod 666 ./app/sqlite_db
 ```
-Access http://localhost:5000/  
+Then, Check http://localhost:5000/  
 
 ## Data file output
 You can download CSV file format file  
 
-### channels-%y%M%D.csv for example shipweb-201002.csv
+### channels-%y%M%D.csv for example channels-201002.csv
 ```
 "Channel Id","Channel name","Published at","subscriberCount","subscriberChange","viewCount","viewChange","videoCount","videoChange","commentCount","commentChange"
 "UCne2IBkAj3JoyzNAOzXxKMg","shipweb","2015-11-29 10:55:00","52","0","17841","0","17","0","0","0"
