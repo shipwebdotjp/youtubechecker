@@ -1,0 +1,23 @@
+{%- extends "layout.html" %}
+{%- block content %}
+<div class="card-group">
+    <div class="card">
+        <div class="card-header">
+        Login with
+        </div>
+        <div class="card-body">
+            <h5 class="card-title">Single sign on with:</h5>
+            <p class="card-text">
+                <a href="{{ url_for('line_login') }}" ><img src="{{ url_for('static', filename='btn_line_signin.png') }}"></a>
+            </p>
+            <p class="card-text">
+                <a href="{{ url_for('google_login') }}"><img src="{{ url_for('static', filename='btn_google_signin.png') }}"></a>
+            </p>
+        </div>
+        <div class="card-footer text-muted">
+        
+        </div>
+    </div>
+</div>
+
+{%- endblock %}

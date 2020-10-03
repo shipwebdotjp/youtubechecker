@@ -9,6 +9,7 @@ import string
 import csv
 import click
 import re
+import requests
 from io import StringIO
 from oauthlib.oauth2 import WebApplicationClient
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
@@ -100,6 +101,10 @@ def docheck():
 
 @app.route('/login')
 def login():
+    return render_template('login.html',title='Login')
+
+@app.route('/line')
+def line_login():
     oauth = WebApplicationClient(settings.LINE_CHANNEL_ID)
     state = "".join([random.choice(string.ascii_letters + string.digits) for i in range(32)])
     session["state"] = state
@@ -108,7 +113,7 @@ def login():
       scope='profile openid', bot_prompt='normal' )
     return redirect(url)
 
-@app.route('/login/callback')
+@app.route('/line/callback')
 def callback():
     oauth = WebApplicationClient(settings.LINE_CHANNEL_ID)
     if request.args.get("error"):
@@ -408,11 +413,73 @@ def appleicon():
     return send_from_directory(os.path.join(app.root_path, 'static'),
                                'apple-touch-icon.png', mimetype='image/png')
 
-@app.route('/logo.png')
-def logo():
-    return send_from_directory(os.path.join(app.root_path, 'static'),
-                               'logo.png', mimetype='image/png')
+def get_google_provider_cfg():
+    return requests.get("https://accounts.google.com/.well-known/openid-configuration").json()
 
+
+@app.route('/google')
+def google_login():
+    google_provider_cfg = get_google_provider_cfg()
+    oauth = WebApplicationClient(settings.GOOGLE_CLIENT_ID)
+    authorization_endpoint = google_provider_cfg["authorization_endpoint"]
+    state = "".join([random.choice(string.ascii_letters + string.digits) for i in range(32)])
+    session["state"] = state
+    url, headers, body = oauth.prepare_authorization_request(authorization_endpoint,
+      state=state, redirect_url=request.base_url + "/callback",
+      scope=['profile','openid'] )
+    return redirect(url)
+
+@app.route('/google/callback')
+def google_callback():
+    google_provider_cfg = get_google_provider_cfg()
+    token_endpoint = google_provider_cfg["token_endpoint"]
+    oauth = WebApplicationClient(settings.GOOGLE_CLIENT_ID)
+    if request.args.get("error"):
+        flash('Error! '+request.args.get("error"), 'alert-warning')
+        return redirect(url_for('main'))
+
+    state = request.args.get("state")
+    if state != session.get("state"):
+        flash('Error! state not match.', 'alert-warning')
+        return redirect(url_for('main'))
+
+    session.pop('state', None)
+    url, headers, body = oauth.prepare_token_request(token_endpoint,
+                            authorization_response=request.url,
+                            redirect_url=request.base_url,
+                            state='', body='', client_secret=settings.GOOGLE_CLIENT_SECRET)
+
+    token_response = requests.post(
+        url,
+        headers=headers,
+        data=body,
+        auth=(settings.GOOGLE_CLIENT_ID, settings.GOOGLE_CLIENT_SECRET),
+    )
+    
+    oauth.parse_request_body_response(json.dumps(token_response.json()))
+    userinfo_endpoint = google_provider_cfg["userinfo_endpoint"]
+    uri, headers, body = oauth.add_token(userinfo_endpoint)
+    userinfo_response = requests.get(uri, headers=headers, data=body)
+
+    if userinfo_response.status_code != 200:
+        flash('Error! '+userinfo_response.json(), 'alert-warning')
+        return redirect(url_for('main'))
+    
+    unique_id = userinfo_response.json()["sub"]
+    users_name = userinfo_response.json()["name"]
+    picture = userinfo_response.json()["picture"]
+    user = User(
+        id_=unique_id, name=users_name, profile_pic=picture
+    )
+    if not User.get(unique_id):
+        User.create(unique_id, users_name, picture)
+        login_user(user)
+        session["newregister"] = 1
+        flash('You have been successfully created an account.', 'alert-success')
+        return redirect(url_for('pushtime'))
+
+    login_user(user)
+    return redirect(url_for('channellist'))
 
 @app.cli.command("minly_job")
 @with_appcontext

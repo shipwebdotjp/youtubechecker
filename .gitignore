@@ -4,6 +4,7 @@ doc/
 channel/
 .devcontainer/
 log/
+secrets/
 channels.csv
 idlist.txt
 sqlite_db
