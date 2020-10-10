@@ -10,10 +10,13 @@ import csv
 import click
 import re
 import requests
+import unicodedata
+import math
 from io import StringIO
 from oauthlib.oauth2 import WebApplicationClient
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask.cli import with_appcontext
+from werkzeug.urls import url_quote
 # Internal imports
 from db import init_db_command, get_db, query_db
 from user import User
@@ -51,8 +54,47 @@ def make_session_permanent():
 
 @app.route("/")
 def main():
-    newdata = query_db('select * from channel order by subscriberChange desc limit 0, 30')
-    return render_template('main.html',title='Channels',data=newdata)
+    cur_page = request.args.get("page") if request.args.get("page") else '0'
+    order = request.args.get("order") if request.args.get("order") else '0'
+    num = 30 # number of list 
+    num_range = 2 # number of around current pager item
+    if not (re.match('^[0-9]+$', cur_page) and re.match('^[0-9]+$', order)):
+        return 'page or order error'
+    order_query = {}
+    numdata = query_db('select count(*) from channel', order_query, True)
+    num_all = int(numdata[0]) # all amount of data
+    orderstr = settings.channel_order[int(order)]['val']
+    order_query.update( {
+        'start': int(cur_page) * num,
+        'num': num 
+        })
+    newdata = query_db('select * from channel order by {} limit :start, :num'.format(orderstr), order_query)
+    page_max = int(num_all / num) # max page number ( 0 start)
+    pager_list = [0]
+    #pager_start = 0 if int(cur_page) - 2 - (0 if int(cur_page) + 2 <= page_max else page_max - int(cur_page) + 2) < 0 else int(cur_page) - 2 - (0 if int(cur_page) + 2 <= page_max else page_max - int(cur_page) + 2)
+    pager_start = max(num_range - 1, int(cur_page) - num_range - max(int(cur_page) + num_range - page_max, 0))
+    #pager_end = page_max if int(cur_page) + 2 + abs(0 if int(cur_page) - 2 > 0 else int(cur_page) - 2) > page_max else int(cur_page) + 2 + abs(0 if int(cur_page) - 2 > 0 else int(cur_page) - 2)
+    pager_end = min(page_max - 1, int(cur_page) + num_range + abs(min(0, int(cur_page) - num_range)))
+    pager_list.extend(list(range(pager_start,pager_end+1)))
+    pager_list.append(page_max)
+    pager_list = list(dict.fromkeys(pager_list))
+    #for item in newdata:
+        
+    pager = {
+        'page': int(cur_page),
+        'num' : num,
+        'page_min' : 0,
+        'page_max' : page_max,
+        'page_min_ommit': True if len(pager_list)>1 and pager_list[1]!=1 else False,
+        'page_max_ommit': True if len(pager_list)>1 and pager_list[len(pager_list)-2]!=page_max-1 else False,
+        'num_all' : num_all,
+        'list': pager_list
+    }
+    order = {
+        'order': int(order),
+        'list': settings.channel_order
+    }
+    return render_template('main.html',title='Channels',data=newdata, pager=pager, order=order)
 
 @app.route('/channel/<channelid>')
 def channel(channelid):
@@ -85,8 +127,17 @@ def download(channelid):
     res = make_response()
     res.data = f.getvalue()
     res.headers['Content-Type'] = 'text/csv'
-    res.headers['Content-Disposition'] = 'attachment; filename='+ downloadFileName
+    res.headers['Content-Disposition'] = rfc5987_content_disposition(downloadFileName) #'attachment; filename='+ downloadFileName
     return res
+
+def rfc5987_content_disposition(file_name):
+    ascii_name = unicodedata.normalize('NFKD', file_name).encode('ascii','ignore').decode()
+    header = 'attachment; filename="{}"'.format(ascii_name)
+    if ascii_name != file_name:
+        quoted_name = url_quote(file_name)
+        header += '; filename*=UTF-8\'\'{}'.format(quoted_name)
+
+    return header
 
 @app.route('/docheck')
 def docheck():
@@ -392,7 +443,79 @@ def channellist():
             flash('The channels has been deleted.', 'alert-warning')
 
     newdata = query_db('select user_channel.channelid,channel.title,channel.publish_at,channel.subscriberCount,channel.viewCount,channel.videoCount,channel.commentCount,channel.subscriberChange,channel.viewChange,channel.videoChange,channel.commentChange from user_channel left outer join channel on user_channel.channelid = channel.channelid where user_channel.userid = ?', [current_user.id])
-    return render_template('channellist.html',title='Channels',data=newdata, err_msg=err_msg)
+    list_percent=int(len(newdata) / int(settings.MAX_CHANNELS_PER_USER) * 100)
+    return render_template('channellist.html',title='Channels',data=newdata, err_msg=err_msg, list_percent=list_percent, max_list_cnt=settings.MAX_CHANNELS_PER_USER)
+
+@app.route("/chart")
+def chart():
+    if request.args.get("channelid") and request.args.get("period") and request.args.get("datatype"):
+        channelid = request.args.get("channelid")
+        matched = youtubechecker.check_channelid(channelid)
+        if not matched:
+            return 'err'
+        period = request.args.get("period")
+        datatype = request.args.get("datatype")
+        if (period == '30' or period == '365' or period == 'all') and (datatype == "daily" or datatype == "total"):
+            wherestr = 'where channelid = :channelid'
+            qeuerydata = {'channelid':channelid}
+            chart_type = {'daily':'bar','total':'line'}
+            data_label = list()
+            data_subscriber = list()
+            data_view = list()
+            if period == '30' or period == '365':
+                dt1 = datetime.datetime.now()
+                dt2 = dt1 + datetime.timedelta(days=-1 * int(period))
+                wherestr += ' and date > :date'
+                qeuerydata['date'] = dt2.strftime('%Y-%m-%d %H:%M:%S')
+            
+            for history in query_db('select * from channel_history ' + wherestr + ' order by date desc', qeuerydata):
+                data_label.append(history['date'][:10])
+                data_subscriber.append(history['subscriberCount'] if datatype == "total" else history['subscriberChange'])
+                data_view.append(history['viewCount'] if datatype == "total" else history['viewChange'])
+            data_label.reverse()
+            data_subscriber.reverse()
+            data_view.reverse()
+            datasets = [
+                {
+                    'type':chart_type[datatype],
+                    'label': 'Subscriber',
+                    'data': data_subscriber,
+                    'borderColor': "rgba(255, 99, 132, 0.5)",
+                    'backgroundColor':"rgba(255, 99, 132, 0.1)",
+                    'fill':'false',
+                    'pointRadius':6,
+                    'pointHoverRadius':12,
+                    'lineTension':0,
+                    'yAxisID': "y-axis-1"
+                },
+                {
+                    'type':chart_type[datatype],
+                    'label': 'View',
+                    'data': data_view,
+                    'borderColor': "rgba(99, 132, 255, 0.5)",
+                    'backgroundColor':"rgba(99, 132, 255, 0.2)",
+                    'fill':'false',
+                    'pointRadius':6,
+                    'pointHoverRadius':12,
+                    'lineTension':0,
+                    'yAxisID': "y-axis-2"
+                }
+            ]
+            
+            newdata = {
+                'labels':data_label,
+                'datasets':datasets
+            }
+            return newdata
+
+
+    newdata = {
+            'header' : 'Sorry',
+            'message' : 'Query string error.',
+            'next_url': url_for('main'),
+            'next_text': 'Main'
+        }
+    return render_template('message.html',title='Bad Request',data=newdata), 400
 
 @app.route("/test")
 def test():
@@ -481,6 +604,14 @@ def google_callback():
     login_user(user)
     return redirect(url_for('channellist'))
 
+#Jinja2 Costom Filter
+@app.template_filter('formatchange')
+def format_change(value):
+    if value is None:
+        return ""
+    return ('+' if int(value) > 0 else ('±' if int(value) == 0 else '')) +  "{:,}".format(int(value))
+
+# Command LINE
 @app.cli.command("minly_job")
 @with_appcontext
 def minly_job():
@@ -497,8 +628,9 @@ def hourly_job():
 @with_appcontext
 def dayly_job():
     """Run once at a day"""
-    youtubechecker.job()
+    res = youtubechecker.job()
     click.echo("Updated Channels.")
+    youtubechecker.send_line_notify(res)
 
 @app.cli.command("initdb")
 @with_appcontext

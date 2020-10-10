@@ -1,6 +1,5 @@
 import os
 import requests
-import pickle
 import time
 import csv
 import datetime
@@ -13,23 +12,6 @@ from googleapiclient import errors
 from db import init_db_command, get_db, query_db
 from flask.cli import with_appcontext
 import settings
-
-def main(): # メイン関数
-    job() # 起動時に一回実行
-
-def add_new_history(id,newdata):
-    header = newdata.keys()
-    path = os.path.join(os.path.dirname(__file__),'channel', id+'.csv')
-    if not os.path.isdir(os.path.join(os.path.dirname(__file__),'channel')):
-        os.mkdir(os.path.join(os.path.dirname(__file__),'channel'))
-
-    isExists = os.path.exists(path)
-    with open(path, mode='a') as f:
-        writer = csv.DictWriter(f,delimiter=',', lineterminator='\n',fieldnames=header)
-        if not isExists:
-            writer.writeheader()
-
-        writer.writerow(newdata)
 
 def send_line_notify(notification_message, notify_token=settings.LINE_TOKEN): # LINE Notifyで通知する
     line_notify_token = notify_token
@@ -192,6 +174,10 @@ def job(): # Youtube Data APIへアクセスする
                         subscriberChange,viewChange,videoChange,commentChange),
             )
             db.commit()
+    idlines = query_db('select count(channelid) from channel',(),True)
+    userlines = query_db('select count(id) from user',(),True)
+    return f'Channel Count: {idlines[0]:,d} User Count: {userlines[0]:,d}'
+
 
 def send_notify_each_user():
     nowtime = datetime.datetime.now().strftime('%H%M')
@@ -214,5 +200,5 @@ def send_notify_from_user(user_id,notify_token):
         send_line_notify('\n'+'\n'.join(split_result),notify_token) # 結果が入ったリストを改行で結合させて，LINE Notifyで結果をLINEに送信する
 
 def change_format(change):
-    change = ('+' if change > 0 else '') + "{:,}".format(change) # プラスの場合は先頭に＋をつける
+    change = ('+' if change > 0 else ('±' if change == 0 else '')) + "{:,}".format(change) # プラスの場合は先頭に＋をつける
     return change
