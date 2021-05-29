@@ -12,11 +12,17 @@ import re
 import requests
 import unicodedata
 import math
+#import gspread
+
 from io import StringIO
 from oauthlib.oauth2 import WebApplicationClient
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask.cli import with_appcontext
 from werkzeug.urls import url_quote
+#from oauth2client.service_account import ServiceAccountCredentials 
+
+#from gspread_formatting import *
+
 # Internal imports
 from db import init_db_command, get_db, query_db
 from user import User
@@ -365,27 +371,16 @@ def notify_revoke():
 def channellist():
     err_msg = list()
     if request.method == "POST":
-        clean_idlist = list()
+        # clean_idlist = list()
         check_ids = list()
-        new_channels = list()
+        # new_channels = list()
         exists_ids = list()
-        
+        # valid_ids = list()
         isSuccess = False
         newids = request.form["lists"].splitlines()
-        for channelid in newids:
-            matched = youtubechecker.check_channelid(channelid)
-            if matched:
-                clean_idlist.append(matched.group())
-            elif re.search('user/([a-zA-Z0-9_-]+)',channelid):
-                matched = re.search('user/([a-zA-Z0-9_-]+)',channelid)
-                clean_idlist.extend(youtubechecker.name_to_id(matched.group(1)))
-            elif re.search('c/([a-zA-Z0-9_-]+)',channelid):
-                matched = re.search('c/([a-zA-Z0-9_-]+)',channelid)
-                err_msg.append('Custom URL like c/xxxx is not supported. Please use channel id like UCXXXX.')
-                #clean_idlist.extend(youtubechecker.custom_to_id(matched.group(1))) # because search uses high amount of quata.
-            else:
-                err_msg.append('The channels id is wrong.('+channelid+')')
-        for channelid in clean_idlist:
+        (valid_ids, new_ids, err_msg) = insert_channels(newids, False)
+        
+        for channelid in valid_ids:
             if not query_db('SELECT * FROM user_channel WHERE userid = ? AND channelid = ?',[current_user.id, channelid],True):
                 check_ids.append((current_user.id, channelid))
             else:
@@ -407,20 +402,6 @@ def channellist():
         if exists_ids:
             err_msg.append('The channels already exists.('+','.join(exists_ids)+')')
 
-        for channelid in clean_idlist:
-            if not query_db('select * from channel where channelid = ?',[channelid],True):
-                new_channels.append(channelid)
-
-        if new_channels:
-            channeldata = youtubechecker.getChannelData(new_channels) 
-            db = get_db()
-            for item in channeldata:
-                db.execute(
-                    "INSERT INTO channel (channelid,title,publish_at,subscriberCount,viewCount,videoCount,commentCount,subscriberChange,viewChange,videoChange,commentChange) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
-                    (item['channelid'],item['title'],item['publish_at'].replace('Z', '').replace('T', ' '),item['subscriberCount'],
-                    item['viewCount'],item['videoCount'],item['commentCount'],0,0,0,0),
-                )   
-            db.commit() 
         if isSuccess and session.get("newregister") == 1:
             session.pop('newregister', None)
             newdata = {
@@ -604,6 +585,253 @@ def google_callback():
     login_user(user)
     return redirect(url_for('channellist'))
 
+def import_from_text(): #import channels from import.txt to database directly 
+    with open('import.txt') as f:
+        matched_list = list()
+        newids = f.read().splitlines()
+        for channelid in newids:
+            l = channelid.split(',')
+            if len(l) == 2:
+                matched_list.append(l[0])
+        (valid_ids, new_ids, err_msg) = insert_channels(matched_list, True)
+        res = '{} channel ids valid. {} channels are new. {} channel ids wrong.'.format(len(valid_ids),len(new_ids),len(err_msg))
+        print(res)
+        for err in err_msg:
+            print(err)
+    return res
+
+def insert_channels(newids, isAllowCustomUrl = False):
+    clean_idlist = list()
+    valid_ids = list()
+    err_msg = list()
+    new_channels = list()
+    for channelid in newids:
+        matched = youtubechecker.check_channelid(channelid)
+        if matched:
+            clean_idlist.append(matched.group())
+        elif re.search('user/([a-zA-Z0-9_-]+)',channelid):
+            matched = re.search('user/([a-zA-Z0-9_-]+)',channelid)
+            clean_idlist.extend(youtubechecker.name_to_id(matched.group(1)))
+        elif re.search('c/([a-zA-Z0-9_-]+)',channelid):
+            matched = re.search('c/([a-zA-Z0-9_-]+)',channelid)
+            if isAllowCustomUrl:
+                clean_idlist.extend(youtubechecker.custom_to_id(matched.group(1))) # because search uses high amount of quata.
+            else:
+                err_msg.append('Custom URL like c/xxxx is not supported. Please use channel id like UCXXXX.')
+        else:
+            err_msg.append('The channels id is wrong.('+channelid+')')
+
+    for channelid in clean_idlist:
+        if not query_db('select * from channel where channelid = ?',[channelid],True):
+            #print(channelid)
+            new_channels.append(channelid)
+        else:
+            valid_ids.append(channelid)
+
+    if new_channels:
+        channeldata = youtubechecker.getChannelData(new_channels) 
+        if isinstance(channeldata, dict) and channeldata.get('error'):
+            err_msg.append(channeldata.get('error'))
+        else:
+            db = get_db()
+            for item in channeldata:
+                db.execute(
+                    "INSERT INTO channel (channelid,title,publish_at,subscriberCount,viewCount,videoCount,commentCount,subscriberChange,viewChange,videoChange,commentChange) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                    (item['channelid'],item['title'],item['publish_at'].replace('Z', '').replace('T', ' '),item['subscriberCount'],
+                    item['viewCount'],item['videoCount'],item['commentCount'],0,0,0,0),
+                )
+                valid_ids.append(item['channelid'])
+            db.commit() 
+    return (valid_ids, new_channels, err_msg)
+
+def listChannelVideo():
+    channelids = ['UCne2IBkAj3JoyzNAOzXxKMg'] #'UCne2IBkAj3JoyzNAOzXxKMg'
+    result = youtubechecker.getChannelUploads(channelids)
+    if isinstance(result, dict) and result.get('error'):
+        print(result.get('error')+" "+result.get('errorDetail'))
+    else:
+        print ('count: {}'.format(len(result)))
+        db = get_db()
+        for channel in result:
+            print(channel.get('channelid'))
+            print ('count: {}'.format(len(channel.get('videos'))))
+            for video in channel.get('videos'):
+                print(video.get('videoId'))
+                if video.get('detail'):
+                    print( video.get('detail').get('snippet').get('title'))
+                    print( video.get('detail').get('statistics').get('viewCount')+"view")
+            db.execute(
+                    "INSERT OR REPLACE INTO channel_video (channelid,video) VALUES(?,json(?))",
+                    (channel.get('channelid'),
+                    json.dumps(channel.get('videos'))),
+                ) 
+        db.commit() 
+    return
+def connect_gspread(jsonf,key):
+    #spreadsheetsとdriveの2つのAPIを指定する
+    scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
+    #認証情報を設定する
+    credentials = ServiceAccountCredentials.from_json_keyfile_name(jsonf, scope)
+    gc = gspread.authorize(credentials)
+    #スプレッドシートキーを用いて、sheet1にアクセスする
+    SPREADSHEET_KEY = key
+    worksheet = gc.open_by_key(SPREADSHEET_KEY).get_worksheet(0)
+    return worksheet
+
+def spreadsheettest():
+    spread_sheet_key = ""   # スプレッドシートのID
+    jsonf = os.path.join(os.path.dirname(__file__),'secrets','spreadsheet.json')
+    ws = connect_gspread(jsonf,spread_sheet_key)
+    channelid = 'UCne2IBkAj3JoyzNAOzXxKMg' #''
+    result = query_db('SELECT json_extract(video, "$") as video FROM channel_video WHERE channelid = ? ',[channelid], True)
+    videos = json.loads(result['video'])
+    ary_videos = [['タイトル','タグ','動画リンク','動画の長さ','再生回数','高評価数','低評価数','コメント数','投稿日','サムネイル画像','経過日数','エンゲージメント','エンゲージメント率']]
+    for video in videos:
+        detail = video.get('detail')
+        snippet = detail.get('snippet') if detail != None else None
+        contentDetails = detail.get('contentDetails') if detail != None else None
+        statistics = detail.get('statistics')  if detail != None else None      
+
+        title = snippet.get('title') if snippet != None else ''
+        tags = snippet.get('tags') if snippet != None else None
+        tag = ','.join(tags) if tags != None else ''
+        link = 'https://www.youtube.com/watch?v={}'.format(video.get('videoId'))
+        publishedAt = snippet.get('publishedAt').replace('Z', '').replace('T', ' ') if snippet != None else ''
+        thumbnails = snippet.get('thumbnails') if snippet != None else None
+        thumbnail_default = thumbnails.get('default') if thumbnails != None else None
+        thumbnail = '=IMAGE("{}",1)'.format(thumbnail_default.get('url') if thumbnail_default != None else '')
+
+
+        duration = contentDetails.get('duration').replace('PT', '').replace('M', ':').replace('S', '') if contentDetails != None else ''
+
+
+        viewCount = statistics.get('viewCount') if statistics != None else ''
+        likeCount = statistics.get('likeCount') if statistics != None else ''
+        dislikeCount = statistics.get('dislikeCount') if statistics != None else ''
+        commentCount = statistics.get('commentCount') if statistics != None else ''
+       
+        lapsedays = '=FLOOR(TODAY()-INDIRECT(ADDRESS(ROW(),COLUMN()-2,4)))'
+        engagement = '=INDIRECT(ADDRESS(ROW(),COLUMN()-6,4))+INDIRECT(ADDRESS(ROW(),COLUMN()-4,4))'
+        engagement_rate = '=IFERROR(INDIRECT(ADDRESS(ROW(),COLUMN()-1,4))/INDIRECT(ADDRESS(ROW(),COLUMN()-8,4)),0)'
+
+        new_video = [
+            title,tag,link,duration,viewCount,likeCount,dislikeCount,commentCount,publishedAt,thumbnail,lapsedays,engagement,engagement_rate
+        ]
+
+        print(contentDetails.get('duration')+" "+duration)
+        ary_videos.append(new_video)
+    return
+    colnum = len(ary_videos[0])
+    rownum = len(ary_videos)
+    cell_list = ws.range(1,1,rownum,colnum)
+    print( 'col:{},num{}'.format(colnum,rownum))
+
+    cells = sum(ary_videos,[])
+    for i,cell in enumerate(cell_list):
+        cell.value = cells[i]
+    ws.update_cells(cell_list,value_input_option='USER_ENTERED')
+    
+    ary_format = [
+       {
+           'range': 'A1:M1',
+            'format':{
+                'borders':{
+                    "bottom": {
+                        'style': "DOTTED",
+                        'color':{
+                            "red": 0.0,
+                            "green": 0.8,
+                            "blue": 0.2
+                            },
+                    }
+                },
+                "backgroundColor": {
+                    "red": 0.39,
+                    "green": 0.58,
+                    "blue": 0.92
+                    }
+                },
+                "verticalAlignment":"MIDDLE",
+                "horizontalAlignment": "CENTER",
+                "textFormat": {
+                    "foregroundColor": {
+                        "red": 1.0,
+                        "green": 1.0,
+                        "blue": 1.0
+                    },
+                    "bold": True,
+                    "fontSize": 14,
+                },
+                
+       },  
+       {
+           'range': 'D2:D'+str(rownum),
+            'format':{
+                'numberFormat':{
+                    'type': "TIME",
+                    'pattern':'[h]:mm:ss',
+                }
+                }
+       },
+       {
+           'range': 'M2:M'+str(rownum),
+            'format':{
+                'numberFormat':{
+                    'type': "PERCENT",
+                    'pattern':'0.0%',
+                }
+                }
+       }, 
+        {
+           'range': 'K2:K'+str(rownum),
+            'format':{
+                'numberFormat':{
+                    'type': "NUMBER",
+                    'pattern':'0"日"',
+                }
+                }
+       },       
+    ]
+    for fm in ary_format:
+        ws.format(fm['range'],fm['format'])
+    
+    set_row_height(ws, '2:'+str(rownum), 68)
+    set_column_width(ws, 'A', 400)
+    set_column_width(ws, 'B', 250)
+    set_column_width(ws, 'C', 270)
+    set_column_width(ws, 'D', 70)
+    set_column_width(ws, 'E:H', 70)
+    set_column_width(ws, 'I', 70)
+    set_column_width(ws, 'J', 90)
+    set_column_width(ws, 'K:M', 70)
+
+    rule = ConditionalFormatRule(
+        ranges=[GridRange.from_a1_range('K1:K'+str(rownum), ws)],
+        booleanRule=BooleanRule(
+            condition=BooleanCondition('NUMBER_LESS', ['100']),
+            format=CellFormat(backgroundColor=Color(0.84,0.93,0.61))
+        )
+    )
+
+    rules = get_conditional_format_rules(ws)
+    rules.append(rule)
+    rules.save()
+
+    return
+
+def cellsto2darray(cells, col):  # colは列の数
+    cells2d = []
+    for i in range(len(cells) // col):
+        cells2d.append(cells[i * col:(i + 1) * col])
+    return cells2d
+
+def cellsto1darray(cells2d):
+    cells1d = []
+    for cells in cells2d:
+        cells1d.extend(cells,value_input_option='USER_ENTERED')
+    return cells1d
+
+
 #Jinja2 Costom Filter
 @app.template_filter('formatchange')
 def format_change(value):
@@ -628,14 +856,34 @@ def hourly_job():
 @with_appcontext
 def dayly_job():
     """Run once at a day"""
+    click.echo("Started Update Channels. "+datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     res = youtubechecker.job()
-    click.echo("Updated Channels.")
+    click.echo("Updated Channels. "+datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     youtubechecker.send_line_notify(res)
 
 @app.cli.command("initdb")
 @with_appcontext
 def init_db():
     init_db_command()
+
+@app.cli.command("importchannels")
+@with_appcontext
+def import_channel():
+    res = import_from_text()
+    youtubechecker.send_line_notify(res)
+
+@app.cli.command("channelvideo")
+@with_appcontext
+def cmdchannelvideo():
+    listChannelVideo()
+
+
+@app.cli.command("spreadsheet")
+@with_appcontext
+def cmdspreadsheet():
+    spreadsheettest()
+
+ 
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=80)
