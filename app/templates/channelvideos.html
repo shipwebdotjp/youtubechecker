@@ -1,0 +1,53 @@
+{%- extends "layout.html" %}
+{%- block content %}
+{% if err_msg %}
+<div class="card">
+	<div class="card-header">
+	  Error
+	</div>
+	<div class="card-body">
+		{% for err in err_msg %}
+		<p class="card-text">{{err}}</p>
+		{% endfor %}
+	</div>
+  </div>
+{% endif %} 
+  <table class="table table-bordered table-striped">
+	<!-- table header -->
+	{% if data %}
+	<thead>
+	<tr>
+	   <th scope="col">Title</th>
+	   <th scope="col">Duration</th>
+	   <th scope="col">View</th>
+	   <th scope="col">Like</th>
+	   <th scope="col">Dislike</th>
+	   <th scope="col">Comment</th>
+	   <th scope="col">Date</th>
+	</tr>
+	</thead>
+	{% endif %}
+	<tbody>
+	<!-- table rows -->
+	{% for dict_item in videos %}
+	<tr>
+	   <td><a href="https://www.youtube.com/watch?v={{ dict_item['videoId'] }}">{{ dict_item['title'] }}</a></td>
+	   <td>{{dict_item['duration'] | durationformat}}</td>
+	   <td> {{ "{:,}".format(dict_item['viewCount'] | int) }} </td>
+	   <td> {{ "{:,}".format(dict_item['likeCount'] | int) }} </td>
+       <td> {{ "{:,}".format(dict_item['dislikeCount'] | int) }} </td>
+       <td> {{ "{:,}".format(dict_item['commentCount'] | int) }} </td>
+       <td> {{ dict_item['publishedAt'] | durationformat}} </td>
+	</tr>
+	{% endfor %}
+	</tbody>
+  </table>
+  <div>
+	{{videos|count}} Videos
+  </div>
+
+{% if session.newregister != 1 %}
+  <a href="{{ url_for('videodownload', channelid=data['channelid'])}}" class="btn btn-outline-primary btn-lg btn-block">Channels Video CSV Download</a><br>
+  <a href="{{ url_for('docheckvideo', channelid=data['channelid'])}}" class="btn btn-outline-secondary btn-lg btn-block">Do check at once</a><br>
+{% endif %}
+{%- endblock %}

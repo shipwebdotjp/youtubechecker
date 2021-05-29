@@ -20,7 +20,7 @@
     </tr>
     <tr>
         <th scope="row">Video</th>
-        <td>{{ "{:,}".format(data['videoCount'] | int) }}</td>
+        <td><a href="{{ url_for('channelvideos', channelid=data['channelid'])}}">{{ "{:,}".format(data['videoCount'] | int) }}</a></td>
     </tr>
     <tr>
         <th scope="row">Comment</th>

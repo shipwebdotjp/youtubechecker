@@ -226,7 +226,7 @@ def getChannelUploads(channelids): # Youtube Data APIチャンネル　アップ
     for split_result in [channelids[idx:idx + n] for idx in range(0,len(channelids), n)]: # リストを50ずつ分割（長すぎると切れるため）
         ids = ','.join(split_result)
         youtube = build('youtube', 'v3', developerKey=settings.YOUTUBE_KEY)
-        print(ids)
+        # print(ids)
         try:
             response = youtube.channels().list(
                     part='id,contentDetails',
@@ -236,7 +236,7 @@ def getChannelUploads(channelids): # Youtube Data APIチャンネル　アップ
             if response.get('items'):
                 for item in response['items']:
                     id = item.get('id')
-                    print(item)
+                    # print(item)
                     if item.get('contentDetails'):
                         contentDetails = item.get('contentDetails')
                         if contentDetails.get('relatedPlaylists'):
@@ -316,6 +316,6 @@ def getVideoDetails(videoId): # Youtube Data APIで動画情報を取得
                     new_video['contentDetails'] = item.get('contentDetails')
        
     except errors.HttpError as err:
-        return {'error':err._get_reason(),'errorDetail':'function getVideoDetails, videoID:'+videoID}
+        return {'error':err._get_reason(),'errorDetail':'function getVideoDetails, videoID:'+videoId}
     
     return new_video

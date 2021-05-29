@@ -50,3 +50,7 @@ CREATE TABLE IF NOT EXISTS channel_video (
   video JSON 
 );
 create index if not exists channelindex on channel_video(channelid); 
+
+CREATE TABLE IF NOT EXISTS video_waiting (
+  channelid TEXT PRIMARY KEY
+);

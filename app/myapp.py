@@ -136,6 +136,79 @@ def download(channelid):
     res.headers['Content-Disposition'] = rfc5987_content_disposition(downloadFileName) #'attachment; filename='+ downloadFileName
     return res
 
+
+@app.route('/videochannel/<channelid>')
+@login_required
+def channelvideos(channelid):
+    newdata = query_db('select * from channel where channelid = ?',(channelid,),True)
+    result = query_db('SELECT json_extract(video, "$") as video FROM channel_video WHERE channelid = ? ',[channelid], True)
+    videos = list()
+    if result:
+        result = None if result['video'] is None else json.loads(result['video'])
+        for video in result:
+            detail = video.get('detail')
+            snippet = detail.get('snippet') if detail != None else None
+            contentDetails = detail.get('contentDetails') if detail != None else None
+            statistics = detail.get('statistics')  if detail != None else None      
+
+            title = snippet.get('title') if snippet != None else ''
+            duration = contentDetails.get('duration').replace('PT', '').replace('M', ':').replace('S', '') if contentDetails != None else ''
+            viewCount = statistics.get('viewCount') if statistics != None else ''
+            likeCount = statistics.get('likeCount') if statistics != None else ''
+            dislikeCount = statistics.get('dislikeCount') if statistics != None else ''
+            commentCount = statistics.get('commentCount') if statistics != None else ''
+            publishedAt = snippet.get('publishedAt').replace('Z', '').replace('T', ' ') if snippet != None else ''
+
+            videos.append({
+                'title':title, 'duration':duration, 'viewCount':viewCount, 'likeCount':likeCount, 'dislikeCount':dislikeCount, 'commentCount':commentCount, 'publishedAt':publishedAt
+            })
+
+
+    return render_template('channelvideos.html',title='Videos for '+newdata['title'],data=newdata,videos=videos)
+
+
+@app.route('/videodownload/<channelid>')
+@login_required
+def videodownload(channelid):
+    f = StringIO()
+    writer = csv.writer(f, quotechar='"', quoting=csv.QUOTE_ALL, lineterminator="\n")
+
+    newdata = query_db('select * from channel where channelid = ?',(channelid,),True)
+    if newdata:
+        downloadFileName = newdata['title'] + '-videos-'+ datetime.datetime.now().strftime('%y%m%d') + '.csv'
+    else:
+        downloadFileName = channelid + '-videos-'+ datetime.datetime.now().strftime('%y%m%d') + '.csv'
+    if youtubechecker.check_channelid(channelid):
+        writer.writerow(['Title','Duration','View','Like','Dislike','Comment','Date'])
+        result = query_db('SELECT json_extract(video, "$") as video FROM channel_video WHERE channelid = ? ',[channelid], True)
+        if result:
+            videos = None if result['video'] is None else json.loads(result['video'])
+            for video in videos:
+                detail = video.get('detail')
+                snippet = detail.get('snippet') if detail != None else None
+                contentDetails = detail.get('contentDetails') if detail != None else None
+                statistics = detail.get('statistics')  if detail != None else None      
+
+                title = snippet.get('title') if snippet != None else ''
+                duration = contentDetails.get('duration').replace('PT', '').replace('M', ':').replace('S', '') if contentDetails != None else ''
+                viewCount = statistics.get('viewCount') if statistics != None else ''
+                likeCount = statistics.get('likeCount') if statistics != None else ''
+                dislikeCount = statistics.get('dislikeCount') if statistics != None else ''
+                commentCount = statistics.get('commentCount') if statistics != None else ''
+                publishedAt = snippet.get('publishedAt').replace('Z', '').replace('T', ' ') if snippet != None else ''
+
+                writer.writerow([
+                    title, duration, viewCount, likeCount, dislikeCount, commentCount, publishedAt
+                ])
+    else:
+        return 'err: channel ID'
+
+    res = make_response()
+    res.data = f.getvalue()
+    res.headers['Content-Type'] = 'text/csv'
+    res.headers['Content-Disposition'] = rfc5987_content_disposition(downloadFileName) #'attachment; filename='+ downloadFileName
+    return res
+
 def rfc5987_content_disposition(file_name):
     ascii_name = unicodedata.normalize('NFKD', file_name).encode('ascii','ignore').decode()
     header = 'attachment; filename="{}"'.format(ascii_name)
@@ -155,6 +228,20 @@ def docheck():
         flash('Plese link to LINE Notify first!', 'alert-warning')
     
     return redirect(url_for('channellist'))
+
+@app.route('/docheckvideo/<channelid>')
+@login_required
+def docheckvideo(channelid):
+    # listChannelVideo(channelid)
+    result = query_db('SELECT * FROM video_waiting WHERE channelid = ? ',[channelid], True)
+    if not result:
+        db = get_db()
+        db.execute(
+            "INSERT INTO video_waiting (channelid) VALUES (?)",
+            (channelid,),
+        )
+        db.commit()
+    return redirect(url_for('channelvideos',channelid=channelid))
 
 @app.route('/login')
 def login():
@@ -644,22 +731,22 @@ def insert_channels(newids, isAllowCustomUrl = False):
             db.commit() 
     return (valid_ids, new_channels, err_msg)
 
-def listChannelVideo():
-    channelids = ['UCne2IBkAj3JoyzNAOzXxKMg'] #'UCne2IBkAj3JoyzNAOzXxKMg'
+def listChannelVideo(channelids):
+    # channelids = [channelid] #'UCne2IBkAj3JoyzNAOzXxKMg'
     result = youtubechecker.getChannelUploads(channelids)
     if isinstance(result, dict) and result.get('error'):
-        print(result.get('error')+" "+result.get('errorDetail'))
+        return result
     else:
-        print ('count: {}'.format(len(result)))
+        # print ('count: {}'.format(len(result)))
         db = get_db()
         for channel in result:
-            print(channel.get('channelid'))
-            print ('count: {}'.format(len(channel.get('videos'))))
-            for video in channel.get('videos'):
-                print(video.get('videoId'))
-                if video.get('detail'):
-                    print( video.get('detail').get('snippet').get('title'))
-                    print( video.get('detail').get('statistics').get('viewCount')+"view")
+            # print(channel.get('channelid'))
+            # print ('count: {}'.format(len(channel.get('videos'))))
+            # for video in channel.get('videos'):
+                # print(video.get('videoId'))
+                # if video.get('detail'):
+                    # print( video.get('detail').get('snippet').get('title'))
+                    # print( video.get('detail').get('statistics').get('viewCount')+"view")
             db.execute(
                     "INSERT OR REPLACE INTO channel_video (channelid,video) VALUES(?,json(?))",
                     (channel.get('channelid'),
@@ -667,6 +754,7 @@ def listChannelVideo():
                 ) 
         db.commit() 
     return
+
 def connect_gspread(jsonf,key):
     #spreadsheetsとdriveの2つのAPIを指定する
     scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
@@ -679,10 +767,10 @@ def connect_gspread(jsonf,key):
     return worksheet
 
 def spreadsheettest():
-    spread_sheet_key = ""   # スプレッドシートのID
+    spread_sheet_key = "1zySBDqNWJPp1tgPIv5xYw8t3-Ojz16VP7nlFFr5XPzk"
     jsonf = os.path.join(os.path.dirname(__file__),'secrets','spreadsheet.json')
     ws = connect_gspread(jsonf,spread_sheet_key)
-    channelid = 'UCne2IBkAj3JoyzNAOzXxKMg' #''
+    channelid = 'UCne2IBkAj3JoyzNAOzXxKMg' #'UCne2IBkAj3JoyzNAOzXxKMg'
     result = query_db('SELECT json_extract(video, "$") as video FROM channel_video WHERE channelid = ? ',[channelid], True)
     videos = json.loads(result['video'])
     ary_videos = [['タイトル','タグ','動画リンク','動画の長さ','再生回数','高評価数','低評価数','コメント数','投稿日','サムネイル画像','経過日数','エンゲージメント','エンゲージメント率']]
@@ -701,9 +789,7 @@ def spreadsheettest():
         thumbnail_default = thumbnails.get('default') if thumbnails != None else None
         thumbnail = '=IMAGE("{}",1)'.format(thumbnail_default.get('url') if thumbnail_default != None else '')
 
-
         duration = contentDetails.get('duration').replace('PT', '').replace('M', ':').replace('S', '') if contentDetails != None else ''
-
 
         viewCount = statistics.get('viewCount') if statistics != None else ''
         likeCount = statistics.get('likeCount') if statistics != None else ''
@@ -839,6 +925,13 @@ def format_change(value):
         return ""
     return ('+' if int(value) > 0 else ('±' if int(value) == 0 else '')) +  "{:,}".format(int(value))
 
+#Jinja2 Costom Filter
+@app.template_filter('durationformat')
+def duration_format(value):
+    if value is None:
+        return ""
+    return value.replace('PT', '').replace('M', ':').replace('S', '').replace('Z', '').replace('T', ' ')
+
 # Command LINE
 @app.cli.command("minly_job")
 @with_appcontext
@@ -859,6 +952,12 @@ def dayly_job():
     click.echo("Started Update Channels. "+datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     res = youtubechecker.job()
     click.echo("Updated Channels. "+datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    waiting_channels = list()
+    for waiting_channel in query_db('SELECT * FROM video_waiting'):
+        waiting_channels.append(waiting_channel['channelid'])
+    if len(waiting_channels):
+        listChannelVideo(waiting_channels)
+        res = res + "\n" + str(len(waiting_channels)) + " channels video checked"
     youtubechecker.send_line_notify(res)
 
 @app.cli.command("initdb")
@@ -875,15 +974,17 @@ def import_channel():
 @app.cli.command("channelvideo")
 @with_appcontext
 def cmdchannelvideo():
-    listChannelVideo()
+    waiting_channels = list()
+    for waiting_channel in query_db('SELECT * FROM video_waiting'):
+        waiting_channels.append(waiting_channel['channelid'])
+    if len(waiting_channels):
+        print(waiting_channels)
 
 
 @app.cli.command("spreadsheet")
 @with_appcontext
 def cmdspreadsheet():
     spreadsheettest()
-
- 
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=80)
