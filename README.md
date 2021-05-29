@@ -11,12 +11,10 @@ So, you can see the transition in the data. To use Excel you can also draw a gra
 ![LINE](https://blog.shipweb.jp/wp-content/uploads/2020/09/Screenshot-LINE01.jpg)
 
 ## Setting
-1.input LINE Notify token and Google Data API Key to .env file.  
-2.write Youtube channel ID to idlist.txt (1 id per 1 line)  
-
-1..envファイルにLINE Notifyトークンと，Google Data APIのキーを記入  
-2.idlist.txtファイルを作成しチェックしたいYoutubeチャンネルIDを一行ごとに一つ記載  
-
+1. input LINE Notify token and Google Data API Key to .env file.  
+ .envファイルにLINE Notifyトークンと，Google Data APIのキーを記入   
+2. write Youtube channel ID to idlist.txt (1 id per 1 line)  
+ idlist.txtファイルを作成しチェックしたいYoutubeチャンネルIDを一行ごとに一つ記載  
 
 ## Requirements
 * Python 3
@@ -26,11 +24,11 @@ So, you can see the transition in the data. To use Excel you can also draw a gra
 ```
 git clone https://github.com/shipwebdotjp/youtubechecker
 cd youtubechecker
+cp ./app/.env.sample ./app/.env
 vi ./app/.env
 LINE_TOKEN=<LINE NOTIFY TOKEN>
 YOUTUBE_KEY=<GCP KEY>
 :wq
-echo 'Youtube channel ID' > ./app/idlist.txt
 ```
 
 ### Run with Docker
@@ -38,15 +36,10 @@ echo 'Youtube channel ID' > ./app/idlist.txt
 docker-compose up -d --build
 ```
 
-### Run with Standalone Python
-```
-pip install -r requirements.txt
-nohup python ./app/youtubechecker.py &
-```
-
 ## Data file output
-'channels.csv' file  contains current data of all channels.  
-If you want to see the history, see the 'channel' directory. You can find 'channel id'.csv file.  
+You can download csv file from /channellist which contains current data of all channels.  
+If you want to see the history, see the each channel page.
+You can find CSV Download button.  
 
 ## CSV file format
 ### channels.csv

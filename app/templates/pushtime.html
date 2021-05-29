@@ -6,16 +6,16 @@
 	</div>
 	<div class="form-group mx-sm-3 mb-2">
 		<select class="form-inline" id="select1a" name=hour>
-            {% for i in range(23) %}
-                <option value='{{  "{:02}".format(i)  }}' {% if "{:02}".format(i)==data.hour %}selected{% endif %}>{{i}}</option>
+            {% for i in range(24) %}
+                <option value='{{  "{:02}".format(i)  }}' {% if "{:02}".format(i)==data.hour %}selected{% endif %}>{{"{:02}".format(i)}}</option>
             {% endfor %}
-        </select>:
+        </select>&nbsp;:&nbsp;
 		<select class="form-inline" id="select1a" name=min>
-            {% for i in range(59) %}
-                <option value='{{  "{:02}".format(i)  }}' {% if "{:02}".format(i)==data.min %}selected{% endif %}>{{i}}</option>
+            {% for i in range(60) %}
+                <option value='{{  "{:02}".format(i)  }}' {% if "{:02}".format(i)==data.min %}selected{% endif %}>{{"{:02}".format(i)}}</option>
             {% endfor %}
         </select>        
   </div>
-  <button type="submit" class="btn btn-primary mb-2">Update</button>
+  <button type="submit" class="btn btn-outline-primary mb-2">Update</button>
 </form>
 {%- endblock %}

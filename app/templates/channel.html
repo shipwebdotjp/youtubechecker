@@ -7,7 +7,8 @@
     </tr>
     <tr>
         <th scope="row">Channel Name </th>
-        <td>{{ data['title'] }}</td>
+        <td>{{ data['title'] }} <a href="https://www.youtube.com/channel/{{ data['channelid'] }}" class="btn btn-outline-info btn-sm">Go to Youtube</a><br>
+        </td>
     </tr>
     <tr>
         <th scope="row">Subscriber</th>
@@ -26,6 +27,121 @@
         <td>{{ "{:,}".format(data['commentCount']| int) }}</td>
     </tr>
 </table>
-<a href="{{ url_for('download', channelid=data['channelid'])}}" class="btn btn-primary btn-lg btn-block">CSV Download</a><br>
-<a href="https://www.youtube.com/channel/{{ data['channelid'] }}" class="btn btn-secondary btn-lg">Go to Youtube</a><br>
+<a href="{{ url_for('download', channelid=data['channelid'])}}" class="btn btn-outline-info btn-lg btn-block">CSV Download</a><br>
+<form action="" method="POST" class="form-inline" id="chart_pram">
+    <input type="hidden" name=channelid value="{{data['channelid']}}">
+    <div class="form-group  mb-2">
+        <label for="select1a">Data Type</label>
+	</div>
+	<div class="form-group mx-sm-3 mb-2">
+        <div class="btn-group btn-group-toggle" data-toggle="buttons">
+            <label class="btn btn-outline-primary active">
+              <input type="radio" name="datatype" id="select_datatype1" autocomplete="off" value='total' checked >Total
+            </label>
+            <label class="btn btn-outline-primary">
+              <input type="radio" name="datatype" id="select_datatype2" autocomplete="off" value='daily'>Daily
+            </label>
+          </div>
+  </div>
+  <div class="form-group  mb-2">
+    <label for="select1a">Period</label>
+  </div>
+  <div class="form-group mx-sm-3 mb-2">
+    <div class="btn-group btn-group-toggle" data-toggle="buttons">
+        <label class="btn btn-outline-primary active">
+          <input type="radio" name="period" id="select_period1" autocomplete="off" value='30' checked >30 days
+        </label>
+        <label class="btn btn-outline-primary">
+          <input type="radio" name="period" id="select_period2" autocomplete="off" value='365'>1 year
+        </label>
+        <label class="btn btn-outline-primary">
+            <input type="radio" name="period" id="select_period3" autocomplete="off" value='all'>All
+        </label>
+      </div>
+    </div>
+</form>
+<canvas id="myChart"></canvas>
+<span id="span1"></span><span id="span2"></span><span id="span3"></span>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.js"></script>
+<script>
+    var myChart;
+    function chartUpdate(){
+        const url = "{{ url_for('chart')}}";
+        const chartData = $("#chart_pram").serialize();
+        $.getJSON(url,chartData).done(function(data1,textStatus,jqXHR) {
+            options = {
+                'scales': {
+                    'yAxes': [{
+                        'id': "y-axis-1",
+                        'type': "linear", 
+                        'position': "left",
+                        'ticks': {
+                            "callback": function(label, index, labels) { return shortenLargeNumber(label,1); }
+                        },
+                        'scaleLabel': {
+                            'display': 'true',
+                            'labelString': 'Subscriber'
+                        }
+                    }, {
+                        'id': "y-axis-2",
+                        'type': "linear", 
+                        'position': "right",
+                        'gridLines': {
+                            'drawOnChartArea': 'false', 
+                        },
+                        'ticks': {
+                            "callback": function(label, index, labels) { return shortenLargeNumber(label,1); }
+                        },
+                        'scaleLabel': {
+                            'display': 'true',
+                            'labelString': 'View'
+                        }
+                    }],
+                },
+                'tooltips': {
+                     'mode' : 'nearest',
+                     'callbacks': {
+                        'title': function(tooltipItem, data) { return tooltipItem[0].xLabel; },
+                        'label': function(tooltipItem, data) { var datasetIndex = tooltipItem.datasetIndex; var dataset = data.datasets[datasetIndex]; return dataset.label + ': ' + shortenLargeNumber(tooltipItem.yLabel,1); }
+                     }
+                }
+
+            }
+            if (myChart) {
+                myChart.destroy();
+            }
+            var ctx = document.getElementById("myChart");
+           myChart = new Chart(ctx, {
+                    type:'bar',
+                    data : data1,
+                    options: options
+                });
+
+        }).fail(function(jqXHR, textStatus, errorThrown ) {
+            $("#span1").text(jqXHR.status); //例：404
+            $("#span2").text(textStatus); //例：error
+            $("#span3").text(errorThrown); //例：NOT FOUND
+        })
+    }
+    jQuery(function($){
+        chartUpdate();
+        $('input:radio[name="datatype"], input:radio[name="period"]').change(function() {
+            chartUpdate();
+        });
+    });
+    function shortenLargeNumber(num, digits) {
+    var units = ['k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'],
+        decimal;
+
+        for(var i=units.length-1; i>=0; i--) {
+            decimal = Math.pow(1000, i+1);
+
+            if(num <= -decimal || num >= decimal) {
+                return +(num / decimal).toFixed(digits) + units[i];
+            }
+        }
+
+        return num;
+    }
+</script>
 {%- endblock %}

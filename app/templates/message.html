@@ -1,4 +1,15 @@
 {%- extends "layout.html" %}
 {%- block content %}
-<div class="alert {{data.style}}" role="alert">{{data.message}}</div>
+<div class="card">
+  <div class="card-header">
+    {{data.header}}
+  </div>
+  <div class="card-body">
+    <p class="card-text">{{data.message}}</p>
+    {% if data.next_url %}
+    <a href="{{ data.next_url }}" class="btn btn-outline-primary">{{ data.next_text }}</a>
+    {% endif %}
+  </div>
+</div>
+
 {%- endblock %}
