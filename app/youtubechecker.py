@@ -219,3 +219,103 @@ def send_notify_from_user(user_id,notify_token):
 def change_format(change):
     change = ('+' if change > 0 else ('±' if change == 0 else '')) + "{:,}".format(change) # プラスの場合は先頭に＋をつける
     return change
+
+def getChannelUploads(channelids): # Youtube Data APIチャンネル　アップロード画像のプレイリスト取得
+    new_channel_list = list()
+    n = 50
+    for split_result in [channelids[idx:idx + n] for idx in range(0,len(channelids), n)]: # リストを50ずつ分割（長すぎると切れるため）
+        ids = ','.join(split_result)
+        youtube = build('youtube', 'v3', developerKey=settings.YOUTUBE_KEY)
+        print(ids)
+        try:
+            response = youtube.channels().list(
+                    part='id,contentDetails',
+                    id=ids,
+                    maxResults=50
+                ).execute() # Youtube APIへのリクエスト作成
+            if response.get('items'):
+                for item in response['items']:
+                    id = item.get('id')
+                    print(item)
+                    if item.get('contentDetails'):
+                        contentDetails = item.get('contentDetails')
+                        if contentDetails.get('relatedPlaylists'):
+                            new_channel_list.append({
+                                'channelid':id,
+                                'uploads':contentDetails.get('relatedPlaylists').get('uploads'),
+                            })
+            
+        except errors.HttpError as err:
+            return {'error':err._get_reason(),'errorDetail':'function getChannelUploads'}
+
+    new_uploads = list()
+    for playlist in new_channel_list:
+        if playlist.get('uploads'):
+            videos = getVideosFromPlaylist(playlist.get('uploads'))
+            if isinstance(videos, dict) and videos.get('error'):
+                return videos
+            else:
+                new_uploads.append({
+                    'channelid':playlist.get('channelid'),
+                    'videos':videos,
+                })
+
+    return new_uploads
+
+def getVideosFromPlaylist(playlistUrl): # Youtube Data APIでプレイリストに含まれる動画情報を取得
+    new_video_list = list()
+    youtube = build('youtube', 'v3', developerKey=settings.YOUTUBE_KEY)
+    try:
+        playlistitems_list_request = youtube.playlistItems().list(
+                part='snippet',
+                playlistId=playlistUrl,
+                maxResults=50
+            ) # Youtube APIへのリクエスト作成
+        while playlistitems_list_request:
+            playlistitems_list_response = playlistitems_list_request.execute()
+            if playlistitems_list_response.get('items'):
+                for item in playlistitems_list_response['items']:
+                    if item.get('snippet'):
+                        if item.get('snippet').get('resourceId'):
+                            if item.get('snippet').get('resourceId').get('videoId'):
+                                videoId = item.get('snippet').get('resourceId').get('videoId')
+                                videoDetail = getVideoDetails(videoId)
+                                if isinstance(videoDetail, dict) and videoDetail.get('error'):
+                                    return videoDetail
+                                else:
+                                    new_video_list.append({
+                                        'videoId':item.get('snippet').get('resourceId').get('videoId'),
+                                        'detail':videoDetail,
+                                    })
+            playlistitems_list_request = youtube.playlistItems().list_next(playlistitems_list_request, playlistitems_list_response)
+
+        
+    except errors.HttpError as err:
+        return {'error':err._get_reason(),'errorDetail':'function getVideosFromPlaylist, playlistUrl:'+playlistUrl}
+    
+    return new_video_list
+
+def getVideoDetails(videoId): # Youtube Data APIで動画情報を取得
+    new_video = {
+                    'videoId': videoId,
+                }
+    youtube = build('youtube', 'v3', developerKey=settings.YOUTUBE_KEY)
+
+    try:
+        response = youtube.videos().list(
+                part='id,snippet,contentDetails,statistics',
+                id=videoId
+            ).execute() # Youtube APIへのリクエスト作成
+        if response.get('items'):
+            for item in response['items']:
+                if item.get('snippet'):
+                    new_video['snippet'] = item.get('snippet')
+                if item.get('statistics'):
+                    new_video['statistics'] = item.get('statistics')
+                if item.get('contentDetails'):
+                    new_video['contentDetails'] = item.get('contentDetails')
+       
+    except errors.HttpError as err:
+        return {'error':err._get_reason(),'errorDetail':'function getVideoDetails, videoID:'+videoID}
+    
+    return new_video

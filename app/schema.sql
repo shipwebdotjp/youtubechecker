@@ -44,3 +44,9 @@ CREATE TABLE IF NOT EXISTS channel_history (
   commentChange integer
 );
 create index if not exists channelindex on channel_history(channelid); 
+
+CREATE TABLE IF NOT EXISTS channel_video (
+  channelid TEXT PRIMARY KEY,
+  video JSON 
+);
+create index if not exists channelindex on channel_video(channelid); 
