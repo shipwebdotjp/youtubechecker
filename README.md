@@ -33,10 +33,8 @@ LINE/Googleでのシングルサインオン機能，LINE Notifyとの連携機�
 * Google OAuth クライアントシークレット
 
 ## Setting
-1. input LINE Notify token and Google Data API Key to .env file.  
- .envファイルにLINE Notifyトークンと，Google Data APIのキーを記入   
-2. write Youtube channel ID to idlist.txt (1 id per 1 line)  
- idlist.txtファイルを作成しチェックしたいYoutubeチャンネルIDを一行ごとに一つ記載  
+1. input needed API Key to .env file. (you can copy .env.sample to .env and edit it.)  
+ .envファイルに必要なAPIのキーを記入。（.env.sampleをコピーして使用可能）   
 
 ## Requirements
 * Dcoker
@@ -47,7 +45,6 @@ LINE/Googleでのシングルサインオン機能，LINE Notifyとの連携機�
 ```
 git clone https://github.com/shipwebdotjp/youtubechecker
 cd youtubechecker
-mkdir ./app/log
 cp ./app/.env.sample ./app/.env
 vi ./app/.env
 --Edit Your Keys
@@ -56,12 +53,12 @@ vi ./app/.env
 
 ### Run with Docker
 ```
-docker-compose up -d --build
-docker-compose exec python flask initdb
-chmod 777 ./app
-chmod 666 ./app/sqlite_db
+make init
+make run
 ```
 Then, Check http://localhost:5000/ 
+If you want to run on production mode, make production.yml
+
 
 ## Data file output
 You can download csv file from /channellist which contains current data of all channels.  

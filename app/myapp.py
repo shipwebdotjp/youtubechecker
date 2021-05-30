@@ -732,7 +732,6 @@ def insert_channels(newids, isAllowCustomUrl = False):
     return (valid_ids, new_channels, err_msg)
 
 def listChannelVideo(channelids):
-    # channelids = [channelid] #'UCne2IBkAj3JoyzNAOzXxKMg'
     result = youtubechecker.getChannelUploads(channelids)
     if isinstance(result, dict) and result.get('error'):
         return result
@@ -957,7 +956,8 @@ def dayly_job():
         waiting_channels.append(waiting_channel['channelid'])
     if len(waiting_channels):
         listChannelVideo(waiting_channels)
-        res = res + "\n" + str(len(waiting_channels)) + " channels video checked"
+        res = res + "\n" + '{} channels video checked.'.format(len(waiting_channels)) + "\n"
+        query_db('DELETE FROM video_waiting')
     youtubechecker.send_line_notify(res)
 
 @app.cli.command("initdb")
@@ -974,11 +974,13 @@ def import_channel():
 @app.cli.command("channelvideo")
 @with_appcontext
 def cmdchannelvideo():
+    res = "hogehoge"
     waiting_channels = list()
     for waiting_channel in query_db('SELECT * FROM video_waiting'):
         waiting_channels.append(waiting_channel['channelid'])
     if len(waiting_channels):
-        print(waiting_channels)
+        res = res + "\n" + '{} channels video checked'.format(len(waiting_channels)) + "\n"
+        print(res)
 
 
 @app.cli.command("spreadsheet")
