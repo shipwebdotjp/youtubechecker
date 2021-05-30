@@ -14,9 +14,11 @@ SECRET = os.environ.get("SECRET")
 LINE_MESSAGING_TOKEN = os.environ.get("LINE_MESSAGING_TOKEN")
 LINE_NOTIFY_ID = os.environ.get("LINE_NOTIFY_ID")
 LINE_NOTIFY_SECRET = os.environ.get("LINE_NOTIFY_SECRET")
-MAX_CHANNELS_PER_USER = os.environ.get("MAX_CHANNELS_PER_USER")
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
+
+MAX_VIDEOS_PER_USER = os.environ.get("MAX_VIDEOS_PER_USER")
+MAX_CHANNELS_PER_USER = os.environ.get("MAX_CHANNELS_PER_USER")
 
 #Local settings
 channel_order = [

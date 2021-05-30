@@ -54,3 +54,43 @@ create index if not exists channelindex on channel_video(channelid);
 CREATE TABLE IF NOT EXISTS video_waiting (
   channelid TEXT PRIMARY KEY
 );
+
+CREATE TABLE IF NOT EXISTS video (
+  videoid TEXT PRIMARY KEY,
+  channelid TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  publish_at TEXT NOT NULL,
+  thumbnail TEXT,
+  categoryId TEXT,
+  duration TEXT,
+  viewCount integer,
+  likeCount integer,
+  dislikeCount integer,
+  commentCount integer,
+  viewChange integer,
+  likeChange integer,
+  dislikeChange integer,
+  commentChange integer,
+  lastUpdate TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS user_video (
+  userid TEXT NOT NULL,
+  videoid TEXT NOT NULL
+);
+create index if not exists userindex on user_video(userid); 
+
+CREATE TABLE IF NOT EXISTS video_history (
+  videoid TEXT NOT NULL,
+  date TEXT NOT NULL,
+  viewCount integer,
+  likeCount integer,
+  dislikeCount integer,
+  commentCount integer,
+  viewChange integer,
+  likeChange integer,
+  dislikeChange integer,
+  commentChange integer,
+  PRIMARY KEY(videoid,date)
+);

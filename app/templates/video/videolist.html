@@ -1,0 +1,69 @@
+{%- extends "layout.html" %}
+{%- block content %}
+{% if err_msg %}
+<div class="card">
+	<div class="card-header">
+	  Error
+	</div>
+	<div class="card-body">
+		{% for err in err_msg %}
+		<p class="card-text">{{err}}</p>
+		{% endfor %}
+	</div>
+  </div>
+{% endif %} 
+  <table class="table table-bordered table-striped">
+	<!-- table header -->
+	{% if data %}
+	<thead>
+	<tr>
+	   <th scope="col">Title</th>
+	   <th scope="col">View</th>
+	   <th scope="col">Like</th>
+	   <th scope="col">Dislike</th>
+	   <th scope="col">Comment</th>
+	   <th scope="col">Duration</th>
+	   <th scope="col">Date</th>
+	   <th scope="col">CSV</th>
+	   <th scope="col">Link</th>
+	   <th scope="col">Del</th>
+	</tr>
+	</thead>
+	{% endif %}
+	<tbody>
+	<!-- table rows -->
+	{% for dict_item in data %}
+	<tr>
+	   <td><a href="{{ url_for('bp_video.videodetail', videoid=dict_item['videoid'])}}">{{ dict_item['title'] }}</a></td>
+	   <td> {{ "{:,}".format(dict_item['viewCount'] | int) }} ({{dict_item['viewChange'] | formatchange}})</td>
+       <td> {{ "{:,}".format(dict_item['likeCount'] | int) }} ({{dict_item['likeChange'] | formatchange}})</td>
+       <td> {{ "{:,}".format(dict_item['dislikeCount'] | int) }} ({{dict_item['dislikeChange'] | formatchange}})</td>
+       <td> {{ "{:,}".format(dict_item['commentCount'] | int) }} ({{dict_item['commentChange'] | formatchange}})</td>
+       <td> {{ dict_item['duration'] }} </td>
+       <td> {{ dict_item['publish_at']  }} </td>
+	   <td><a href="{{ url_for('bp_video.videocsv', videoid=dict_item['videoid'])}}">CSV</a></td>
+	   <td><a href="https://www.youtube.com/watch?v={{ dict_item['videoid'] }}">Youtube</a><br></td>
+	   <td><a href="{{ url_for('bp_video.videolist', delid=dict_item['videoid'])}}" class="btn btn-outline-secondary btn-block">DEL</a></td>
+	</tr>
+	{% endfor %}
+	</tbody>
+  </table>
+  <div class="progress">
+	<div class="progress-bar" role="progressbar" style="width: {{list_percent}}%;" aria-valuenow="{{list_percent}}" aria-valuemin="0" aria-valuemax="100">{{data|count}} / {{max_list_cnt}}</div>
+</div>
+<form action="{{url_for('bp_video.videolist')}}" method="POST" class="form-inline">
+    <div class="form-group  mb-2">
+        <label for="exampleFormControlTextarea1">Add new Video ID/URL (1 id per 1 line)</label>
+	</div>
+	<div class="form-group mx-sm-3 mb-2">
+		<textarea class="form-control" id="exampleFormControlTextarea1" rows="1" cols=45  placeholder="Video ID/URL" name=lists></textarea>
+  </div>
+  <button type="submit" class="btn btn-outline-primary mb-2">Add</button>
+</form>
+
+
+{% if session.newregister != 1 %}
+  <a href="{{ url_for('bp_video.videocsv', videoid='videos')}}" class="btn btn-outline-primary btn-lg btn-block">Videos CSV Download</a><br>
+  <a href="{{ url_for('bp_video.docheckvideo')}}" class="btn btn-outline-secondary btn-lg btn-block">Do check at once</a><br>
+{% endif %}
+{%- endblock %}

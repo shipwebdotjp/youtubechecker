@@ -29,12 +29,18 @@ from user import User
 import youtubechecker
 import settings
 
+#blueprint module imports
+from video.video import bp_video
 
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
 app.config['SCHEDULER_API_ENABLED'] = True
 app.secret_key = settings.SECRET
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+
+# register blueprint modules
+app.register_blueprint(bp_video)
+
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -490,12 +496,7 @@ def channellist():
             err_msg.append('The channels already exists.('+','.join(exists_ids)+')')
 
         if isSuccess and session.get("newregister") == 1:
-            session.pop('newregister', None)
-            newdata = {
-                'message' : 'Complete! Your account is ready now!',
-                'style':'alert-success'
-            }
-            return render_template('finished.html',title='Finished!',data=newdata)
+            return redirect(url_for("bp_video.videolist"))
 
     if request.args.get('delid'):
         matched = youtubechecker.check_channelid(request.args.get('delid'))
