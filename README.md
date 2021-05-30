@@ -57,8 +57,14 @@ make init
 make run
 ```
 Then, Check http://localhost:5000/ 
-If you want to run on production mode, make production.yml
 
+### Run on production mode
+If you want to run on production mode, edit docker-compose.yml
+```
+    ports:
+      - "5000:80"
+    FLASK_ENV: production
+```
 
 ## Data file output
 You can download csv file from /channellist which contains current data of all channels.  
@@ -83,7 +89,7 @@ You can find CSV Download button.
 ship [Youtube channel](https://www.youtube.com/channel/UCne2IBkAj3JoyzNAOzXxKMg)
 
 ## Youtube Video
-[![thumbnail](http://img.youtube.com/vi/JO33NnIL6es/0.jpg)](http://www.youtube.com/watch?v=JO33NnIL6es "Python Programming")
+[![thumbnail](http://img.youtube.com/vi/iepogFY4-Ns/0.jpg)](https://www.youtube.com/watch?v=iepogFY4-Ns "Python Programming")
 
 ## License
 MIT License
