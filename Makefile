@@ -1,11 +1,4 @@
-PRODUCTION_YML = production.yml
-PRODUCTION_EXISTS = $(shell ls | grep ${PRODUCTION_YML})
-ifeq (${PRODUCTION_EXISTS}, ${PRODUCTION_YML})
-  ARG = -f production.yml
-else
-  ARG = -f docker-compose.yml
-endif
-CMD := docker-compose $(ARG)
+CMD := docker-compose
 
 up:
 	$(CMD) up -d
