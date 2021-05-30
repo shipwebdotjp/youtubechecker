@@ -1,37 +1,35 @@
-CMD := docker-compose
-
 up:
-	$(CMD) up -d
+	docker-compose up -d
 build:
-	$(CMD) build
+	docker-compose build
 init:
-	$(CMD) up -d --build
-	$(CMD) exec python mkdir ./app/log
-	$(CMD) exec python chmod 777 ./app/log
-	$(CMD) exec python flask initdb
-	$(CMD) exec python chmod 666 ./app/sqlite_db
+	docker-compose up -d --build
+	docker-compose exec python mkdir ./app/log
+	docker-compose exec python chmod 777 ./app/log
+	docker-compose exec python flask initdb
+	docker-compose exec python chmod 666 ./app/sqlite_db
 stop:
-	$(CMD) stop
+	docker-compose stop
 down:
-	$(CMD) down --remove-orphans
+	docker-compose down --remove-orphans
 restart:
 	@make down
 	@make up
 destroy:
-	$(CMD) down --rmi all --volumes --remove-orphans
+	docker-compose down --rmi all --volumes --remove-orphans
 destroy-volumes:
-	$(CMD) down --volumes --remove-orphans
+	docker-compose down --volumes --remove-orphans
 ps:
-	$(CMD) ps
+	docker-compose ps
+exec:
+	docker-compose exec python bash
 logs:
-	$(CMD) logs
+	docker-compose logs
 logs-watch:
-	$(CMD) logs --follow
+	docker-compose logs --follow
 log-python:
-	$(CMD) logs python
+	docker-compose logs python
 log-python-watch:
-	$(CMD) logs --follow python
-python:
-	$(CMD) exec python bash
+	docker-compose logs --follow python
 run:
-	$(CMD) exec python flask run -h 0.0.0.0 -p 5000
+	docker-compose exec python flask run -h 0.0.0.0 -p 5000
