@@ -51,7 +51,7 @@
 		{% if not order.order == 0 %}
 			{% set x=param.__setitem__('order',order.order) %}
 		{% endif %}
-		{% if pager.page %}<a class="page-link" href="{{ url_for('main', **param )}}" ><i class="bi bi-arrow-left"></i></a>{% else %}<a class="page-link" herf="#" tabindex="-1"><i class="bi bi-arrow"></i></a>{% endif %}
+		{% if pager.page %}<a class="page-link" href="{{ url_for('main', **param )}}" ><i class="bi bi-arrow-left"></i></a>{% else %}<a class="page-link" herf="#" tabindex="-1"><i class="bi bi-arrow-left"></i></a>{% endif %}
 	  </li>
 
 	  {% for page_item in pager.list %}
