@@ -958,7 +958,11 @@ def dayly_job():
     if len(waiting_channels):
         listChannelVideo(waiting_channels)
         res = res + "\n" + '{} channels video checked.'.format(len(waiting_channels)) + "\n"
-        query_db('DELETE FROM video_waiting')
+        db = get_db()
+        db.execute(
+            "DELETE FROM video_waiting"
+        )
+        db.commit()
     youtubechecker.send_line_notify(res)
 
 @app.cli.command("initdb")
@@ -981,6 +985,7 @@ def cmdchannelvideo():
         waiting_channels.append(waiting_channel['channelid'])
     if len(waiting_channels):
         res = res + "\n" + '{} channels video checked'.format(len(waiting_channels)) + "\n"
+        # query_db('DELETE FROM video_waiting')
         print(res)
 
 
