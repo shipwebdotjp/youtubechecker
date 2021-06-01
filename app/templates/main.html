@@ -31,8 +31,8 @@
 	   <td> {{ "{:,}".format(dict_item['viewCount'] | int) }} ({{dict_item['viewChange'] | formatchange}})</td>
 	   <td> {{ "{:,}".format(dict_item['videoCount'] | int) }} ({{dict_item['videoChange'] | formatchange}})</td>
 	   <!--<td> {{ "{:,}".format(dict_item['commentCount'] | int) }} </td>//-->
-	   <td><a href="{{ url_for('download', channelid=dict_item['channelid'])}}">CSV</a></td>
-	   <td><a href="https://www.youtube.com/channel/{{ dict_item['channelid'] }}">Youtube</a><br></td>
+	   <td><a href="{{ url_for('download', channelid=dict_item['channelid'])}}" class="btn btn-outline-success btn-block"><i class="bi bi-file-spreadsheet-fill"></i></a></td>
+	   <td><a href="https://www.youtube.com/channel/{{ dict_item['channelid'] }}" class="btn btn-outline-danger btn-block"><i class="bi bi-youtube"></i></a></td>
 	</tr>
 	{% endfor %}
 	</tbody>
@@ -51,7 +51,7 @@
 		{% if not order.order == 0 %}
 			{% set x=param.__setitem__('order',order.order) %}
 		{% endif %}
-		{% if pager.page %}<a class="page-link" href="{{ url_for('main', **param )}}" >Previous</a>{% else %}<a class="page-link" herf="#" tabindex="-1">Previous</a>{% endif %}
+		{% if pager.page %}<a class="page-link" href="{{ url_for('main', **param )}}" ><i class="bi bi-arrow-left"></i></a>{% else %}<a class="page-link" herf="#" tabindex="-1"><i class="bi bi-arrow"></i></a>{% endif %}
 	  </li>
 
 	  {% for page_item in pager.list %}
@@ -82,9 +82,9 @@
 			{% set x=param.__setitem__('order',order.order) %}
 		{% endif %}
 		{% if pager.page < pager.page_max %}
-			<a class="page-link" href="{{ url_for('main', **param )}}">Next</a>
+			<a class="page-link" href="{{ url_for('main', **param )}}"><i class="bi bi-arrow-right"></i></a>
 		{% else %}
-			<a class="page-link" herf="#" tabindex="-1">Next</a>
+			<a class="page-link" herf="#" tabindex="-1"><i class="bi bi-arrow-right"></i></a>
 		{% endif %}
 	  </li>
 	</ul>

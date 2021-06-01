@@ -14,7 +14,7 @@
 {% endif %} 
   <table class="table table-bordered table-striped">
 	<!-- table header -->
-	{% if data %}
+	{% if videos %}
 	<thead>
 	<tr>
 	   <th scope="col">Title</th>
@@ -31,13 +31,13 @@
 	<!-- table rows -->
 	{% for dict_item in videos %}
 	<tr>
-	   <td><a href="https://www.youtube.com/watch?v={{ dict_item['videoId'] }}">{{ dict_item['title'] }}</a></td>
+	   <td><a href="https://www.youtube.com/watch?v={{ dict_item['videoid'] }}">{{ dict_item['title']  | truncate(30) }}</a></td>
 	   <td>{{dict_item['duration'] | durationformat}}</td>
 	   <td> {{ "{:,}".format(dict_item['viewCount'] | int) }} </td>
 	   <td> {{ "{:,}".format(dict_item['likeCount'] | int) }} </td>
        <td> {{ "{:,}".format(dict_item['dislikeCount'] | int) }} </td>
        <td> {{ "{:,}".format(dict_item['commentCount'] | int) }} </td>
-       <td> {{ dict_item['publishedAt'] | durationformat}} </td>
+       <td> {{ dict_item['publishedAt'] | format_datetime_to_date}} </td>
 	</tr>
 	{% endfor %}
 	</tbody>
@@ -47,7 +47,9 @@
   </div>
 
 {% if session.newregister != 1 %}
-  <a href="{{ url_for('videodownload', channelid=data['channelid'])}}" class="btn btn-outline-primary btn-lg btn-block">Channels Video CSV Download</a><br>
-  <a href="{{ url_for('docheckvideo', channelid=data['channelid'])}}" class="btn btn-outline-secondary btn-lg btn-block">Do check at once</a><br>
+	{% if videos %}
+  <a href="{{ url_for('videodownload', channelid=data['channelid'])}}" class="btn btn-outline-primary btn-lg btn-block"><i class="bi bi-download"></i> Download Channels Video CSV</a><br>
+	{% endif %}
+  <a href="{{ url_for('requestcheckvideo', channelid=data['channelid'])}}" class="btn btn-outline-secondary btn-lg btn-block">Request check all videos</a><br>
 {% endif %}
 {%- endblock %}

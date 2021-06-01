@@ -12,6 +12,7 @@ from googleapiclient import errors
 from db import init_db_command, get_db, query_db
 from flask.cli import with_appcontext
 import settings
+import functions
 
 def send_line_notify(notification_message, notify_token=settings.LINE_TOKEN): # LINE Notifyで通知する
     line_notify_token = notify_token
@@ -203,21 +204,31 @@ def send_notify_each_user():
     nowtime = datetime.datetime.now().strftime('%H%M')
     for user in query_db('select id,notify_token from user where push_time = ?', [nowtime]):
         if user['notify_token']:
-            send_notify_from_user(user['id'],user['notify_token'])
+            send_notify_from_user(user['id'],user['notify_token'],['channel','video'])
             print('Send notify to '+user['id'])
     print("finished at "+nowtime)    
 
-def send_notify_from_user(user_id,notify_token):
-    result = list()
-    for channel in query_db('select user_channel.channelid,channel.title,channel.publish_at,channel.subscriberCount,channel.viewCount,channel.videoCount,channel.commentCount,channel.subscriberChange,channel.viewChange,channel.videoChange,channel.commentChange from user_channel left outer join channel on user_channel.channelid = channel.channelid where user_channel.userid = ?',
-        [user_id]):
-        result.append(
-            channel['title']+
-            ' Subscriber: '+"{:,}".format(int(0 if channel['subscriberCount'] is None else channel['subscriberCount']))+ ' ('+str(change_format(channel['subscriberChange']))+')'+
-            ' View: '+"{:,}".format(int(channel['viewCount']))+ ' ('+str(change_format(channel['viewChange']))+')')
-    n = 10
-    for split_result in [result[idx:idx + n] for idx in range(0,len(result), n)]: # リストを10ずつ分割（長すぎると切れるため）
-        send_line_notify('\n'+'\n'.join(split_result),notify_token) # 結果が入ったリストを改行で結合させて，LINE Notifyで結果をLINEに送信する
+def send_notify_from_user(user_id,notify_token,category):
+    if 'channel' in category:
+        result = list()
+        for channel in query_db('select user_channel.channelid,channel.title,channel.publish_at,channel.subscriberCount,channel.viewCount,channel.videoCount,channel.commentCount,channel.subscriberChange,channel.viewChange,channel.videoChange,channel.commentChange from user_channel left outer join channel on user_channel.channelid = channel.channelid where user_channel.userid = ?',
+            [user_id]):
+            result.append(
+                channel['title']+
+                ' 🔔: '+functions.human_format(int(0 if channel['subscriberCount'] is None else channel['subscriberCount']))+ ' ('+str(change_format(channel['subscriberChange']))+')'+
+                ' 👀: '+functions.human_format(int(channel['viewCount']))+ ' ('+str(change_format(channel['viewChange']))+')'+
+                ' 🎞: '+functions.human_format(int(channel['videoCount']))+ ' ('+str(change_format(channel['videoChange']))+')')
+        n = 10
+        for split_result in [result[idx:idx + n] for idx in range(0,len(result), n)]: # リストを10ずつ分割（長すぎると切れるため）
+            send_line_notify('\n'+'\n'.join(split_result),notify_token) # 結果が入ったリストを改行で結合させて，LINE Notifyで結果をLINEに送信する
+
+    if 'video' in category:
+        video_result = list()
+        for video in query_db('select user_video.videoid,video.title,video.publish_at,video.duration,video.viewCount,video.likeCount,video.dislikeCount,video.commentCount,video.viewChange,video.likeChange,video.dislikeChange,video.commentChange from user_video left outer join video on user_video.videoid = video.videoid where user_video.userid = ?', [user_id]):
+            video_result.append(video['title'][:15]+' 👀: '+functions.human_format(int(0 if video['viewCount'] is None else video['viewCount']))+ ' ('+str(change_format(video['viewChange']))+')'+' 👍: '+functions.human_format(int(0 if video['likeCount'] is None else video['likeCount']))+ ' ('+str(change_format(video['likeChange']))+')'+' 👎: '+functions.human_format(int(0 if video['dislikeCount'] is None else video['dislikeCount']))+ ' ('+str(change_format(video['dislikeChange']))+')'+' 💬: '+functions.human_format(int(0 if video['commentCount'] is None else video['commentCount']))+ ' ('+str(change_format(video['commentChange']))+')')
+        n = 10
+        for split_result in [video_result[idx:idx + n] for idx in range(0,len(video_result), n)]: # リストを10ずつ分割（長すぎると切れるため）
+            send_line_notify('\n'+'\n'.join(split_result),notify_token) # 結果が入ったリストを改行で結合させて，LINE Notifyで結果をLINEに送信する
 
 def change_format(change):
     change = ('+' if change > 0 else ('±' if change == 0 else '')) + "{:,}".format(change) # プラスの場合は先頭に＋をつける
@@ -330,3 +341,80 @@ def getVideoDetails(videoIds): # Youtube Data APIで動画情報を取得
             return {'error':err._get_reason(),'errorDetail':'function getVideoDetails, videoID:'+videoId}
 
     return new_video_list
+
+def updateVideosJob(): # ビデオの情報を更新する
+    db = get_db()
+    dataFinish = False
+    start=0
+    while dataFinish == False:
+        idlines = query_db('select videoid from video limit ?,50', [start])
+        if not idlines:
+            break
+        start += 50
+        idlist = list()
+        for video in idlines:
+            idlist.append(video['videoid'])
+        ids = ','.join(idlist) # リストをコンマで結合して文字列
+
+        youtube = build('youtube', 'v3', developerKey=settings.YOUTUBE_KEY) # Youtube APIへアクセスするオブジェクト作成
+
+        try:
+            response = youtube.videos().list(
+                    part='id,snippet,statistics',
+                    id=ids
+                ).execute() # Youtube APIへのリクエスト作成
+        except errors.HttpError as err:
+            # HTTPエラーが生じた場合は，エラーメッセージを表示。
+            print('There was an error creating the model. Check the details:')
+            print(err._get_reason())
+            send_line_notify(err._get_reason()) # LINEでもエラーを通知
+        if response.get('items'):
+            for item in response['items']: # 帰ってきた結果をチャンネルごと処理
+                id = item.get('id')
+                print(id)
+
+                curdata = query_db('select * from video where videoid = ?', [id], True)
+                if item.get('statistics') and item.get('snippet'):
+                    likeCount = item['statistics'].get('likeCount')
+                    viewCount = item['statistics'].get('viewCount')
+                    dislikeCount = item['statistics'].get('dislikeCount')
+                    commentCount = item['statistics'].get('commentCount')
+
+                    if curdata and item.get('statistics') and item.get('snippet'): # 以前のデータが保存されているかどうか
+                        likeChange = int(0 if likeCount is None else likeCount) - int(0 if curdata['likeCount'] is None else curdata['likeCount'])
+                        viewChange = int(0 if viewCount is None else viewCount) - int(0 if curdata['viewCount'] is None else curdata['viewCount'])
+                        dislikeChange = int(0 if dislikeCount is None else dislikeCount) - int(0 if curdata['dislikeCount'] is None else curdata['dislikeCount'])
+                        commentChange = int(0 if commentCount is None else commentCount) - int(0 if curdata['commentCount'] is None else curdata['commentCount'])
+                        #change = ('+' if change > 0 else '') + "{:,}".format(change) # プラスの場合は先頭に＋をつける
+                    else: # 以前のデータが保存されていなければ，増減値は「New」にする
+                        likeChange = 0
+                        viewChange = 0
+                        dislikeChange = 0
+                        commentChange = 0
+                
+                    queryData = {
+                        'videoid': id,
+                        'title': item.get('snippet').get('title'), 
+                        'description': item.get('snippet').get('description'), 
+                        'viewCount': viewCount, 
+                        'likeCount': likeCount, 
+                        'dislikeCount': dislikeCount, 
+                        'commentCount': commentCount, 
+                        'viewChange': viewChange, 
+                        'likeChange': likeChange, 
+                        'dislikeChange': dislikeChange, 
+                        'commentChange': commentChange, 
+                        'lastUpdate': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    }
+                    db.execute(
+                            "UPDATE video SET title = :title, description = :description, likeCount = :likeCount, viewCount = :viewCount, dislikeCount = :dislikeCount, commentCount = :commentCount, likeChange = :likeChange, viewChange = :viewChange, dislikeChange = :dislikeChange, commentChange = :commentChange, lastUpdate = :lastUpdate WHERE videoid = :videoid",
+                            queryData
+                    )
+                    db.execute(
+                            "INSERT INTO video_history (videoid, date,likeCount,viewCount,dislikeCount,commentCount,likeChange,viewChange,dislikeChange,commentChange) VALUES(:videoid,:lastUpdate,:likeCount,:viewCount,:dislikeCount,:commentCount,:likeChange,:viewChange,:dislikeChange,:commentChange)",
+                            queryData,
+                    )
+                    db.commit()
+                    print(f'{viewCount},{likeCount},{dislikeCount},{commentCount},{viewChange},{likeChange},{dislikeChange},{commentChange}')
+    idlines = query_db('select count(videoid) from video',(),True)
+    return f'Video Count: {idlines[0]:,d}'

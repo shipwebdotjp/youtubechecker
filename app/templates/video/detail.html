@@ -1,0 +1,46 @@
+{%- extends "layout.html" %}
+{%- block content %}
+<table class="table table-bordered">
+    <tr>
+        <th scope="row">Video ID</th>
+        <td>{{ data['videoid'] }}</td>
+    </tr>
+    <tr>
+        <th scope="row">Title </th>
+        <td>{{ data['title'] }} <a href="https://www.youtube.com/watch?v={{ data['videoid'] }}" class="btn btn-outline-danger btn-sm"><i class="bi bi-youtube"></i> Watch on Youtube</a>
+        </td>
+    </tr>
+    <tr>
+        <th scope="row">Thumbnail </th>
+        <td><a href="https://www.youtube.com/watch?v={{ data['videoid'] }}" class=""><img src="{{ data['thumbnail'] }}" width=120 height=90 /></a>
+        </td>
+    </tr>
+    <tr>
+        <th scope="row">View</th>
+        <td>{{ "{:,}".format(data['viewCount'] | int) }} ({{data['viewChange'] | formatchange}})</td>
+    </tr>
+    <tr>
+        <th scope="row">Like</th>
+        <td>{{ "{:,}".format(data['likeCount'] | int) }} ({{data['likeChange'] | formatchange}})</td>
+    </tr>
+    <tr>
+        <th scope="row">Dislike</th>
+        <td>{{ "{:,}".format(data['dislikeCount'] | int) }} ({{data['dislikeChange'] | formatchange}})</td>
+    </tr>
+    <tr>
+        <th scope="row">Comment</th>
+        <td>{{ "{:,}".format(data['commentCount']| int) }} ({{data['commentChange'] | formatchange}})</td>
+    </tr>
+    <tr>
+        <th scope="row">Duration </th>
+        <td>{{ data['duration'] }}<br>
+        </td>
+    </tr>
+    <tr>
+        <th scope="row">Publish At </th>
+        <td>{{ data['publish_at'] }}<br>
+        </td>
+    </tr>
+</table>
+<a href="{{ url_for('bp_video.videocsv', videoid=data['videoid'])}}" class="btn btn-outline-info btn-lg btn-block"><i class="bi bi-download"></i> Download History CSV</a><br>
+{%- endblock %}

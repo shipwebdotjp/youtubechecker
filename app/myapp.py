@@ -10,7 +10,6 @@ import csv
 import click
 import re
 import requests
-import unicodedata
 import math
 #import gspread
 
@@ -18,7 +17,6 @@ from io import StringIO
 from oauthlib.oauth2 import WebApplicationClient
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask.cli import with_appcontext
-from werkzeug.urls import url_quote
 #from oauth2client.service_account import ServiceAccountCredentials 
 
 #from gspread_formatting import *
@@ -28,6 +26,7 @@ from db import init_db_command, get_db, query_db
 from user import User
 import youtubechecker
 import settings
+import functions
 
 #blueprint module imports
 from video.video import bp_video
@@ -139,7 +138,7 @@ def download(channelid):
     res = make_response()
     res.data = f.getvalue()
     res.headers['Content-Type'] = 'text/csv'
-    res.headers['Content-Disposition'] = rfc5987_content_disposition(downloadFileName) #'attachment; filename='+ downloadFileName
+    res.headers['Content-Disposition'] = functions.rfc5987_content_disposition(downloadFileName) #'attachment; filename='+ downloadFileName
     return res
 
 
@@ -158,7 +157,7 @@ def channelvideos(channelid):
             statistics = detail.get('statistics')  if detail != None else None      
 
             title = snippet.get('title') if snippet != None else ''
-            duration = contentDetails.get('duration').replace('PT', '').replace('M', ':').replace('S', '') if contentDetails != None else ''
+            duration = functions.duration_format(contentDetails.get('duration').replace('PT', '').replace('H', ':').replace('M', ':').replace('S', '')) if contentDetails != None else ''
             viewCount = statistics.get('viewCount') if statistics != None else ''
             likeCount = statistics.get('likeCount') if statistics != None else ''
             dislikeCount = statistics.get('dislikeCount') if statistics != None else ''
@@ -166,7 +165,7 @@ def channelvideos(channelid):
             publishedAt = snippet.get('publishedAt').replace('Z', '').replace('T', ' ') if snippet != None else ''
 
             videos.append({
-                'title':title, 'duration':duration, 'viewCount':viewCount, 'likeCount':likeCount, 'dislikeCount':dislikeCount, 'commentCount':commentCount, 'publishedAt':publishedAt
+               'videoid':video.get('videoId'), 'title':title, 'duration':duration, 'viewCount':viewCount, 'likeCount':likeCount, 'dislikeCount':dislikeCount, 'commentCount':commentCount, 'publishedAt':publishedAt
             })
 
 
@@ -212,32 +211,24 @@ def videodownload(channelid):
     res = make_response()
     res.data = f.getvalue()
     res.headers['Content-Type'] = 'text/csv'
-    res.headers['Content-Disposition'] = rfc5987_content_disposition(downloadFileName) #'attachment; filename='+ downloadFileName
+    res.headers['Content-Disposition'] = functions.rfc5987_content_disposition(downloadFileName) #'attachment; filename='+ downloadFileName
     return res
 
-def rfc5987_content_disposition(file_name):
-    ascii_name = unicodedata.normalize('NFKD', file_name).encode('ascii','ignore').decode()
-    header = 'attachment; filename="{}"'.format(ascii_name)
-    if ascii_name != file_name:
-        quoted_name = url_quote(file_name)
-        header += '; filename*=UTF-8\'\'{}'.format(quoted_name)
-
-    return header
 
 @app.route('/docheck')
 def docheck():
     user = query_db('select id,notify_token from user where id = ?', [current_user.id],True)
     if user['notify_token']:
-        youtubechecker.send_notify_from_user(user['id'],user['notify_token'])
+        youtubechecker.send_notify_from_user(user['id'],user['notify_token'],['channel'])
         flash('Plese see your LINE!', 'alert-success')
     else:
         flash('Plese link to LINE Notify first!', 'alert-warning')
     
     return redirect(url_for('channellist'))
 
-@app.route('/docheckvideo/<channelid>')
+@app.route('/requestcheckvideo/<channelid>')
 @login_required
-def docheckvideo(channelid):
+def requestcheckvideo(channelid):
     # listChannelVideo(channelid)
     result = query_db('SELECT * FROM video_waiting WHERE channelid = ? ',[channelid], True)
     if not result:
@@ -247,6 +238,9 @@ def docheckvideo(channelid):
             (channelid,),
         )
         db.commit()
+        flash('Your request has been received. Since we check requests once a day, Plese come back tomorrow!', 'alert-success')
+    else:
+        flash('This channel is already in the que. Plese come back tomorrow!', 'alert-warning')
     return redirect(url_for('channelvideos',channelid=channelid))
 
 @app.route('/login')
@@ -932,6 +926,14 @@ def duration_format(value):
         return ""
     return value.replace('PT', '').replace('M', ':').replace('S', '').replace('Z', '').replace('T', ' ')
 
+
+#Jinja2 Costom Filter
+@app.template_filter('format_datetime_to_date')
+def format_datetime_to_date(value):
+    if value is None:
+        return ""
+    return value.replace('-', '/')[:10]
+
 # Command LINE
 @app.cli.command("minly_job")
 @with_appcontext
@@ -951,6 +953,7 @@ def dayly_job():
     """Run once at a day"""
     click.echo("Started Update Channels. "+datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     res = youtubechecker.job()
+    res = res + "\n" + youtubechecker.updateVideosJob()
     click.echo("Updated Channels. "+datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     waiting_channels = list()
     for waiting_channel in query_db('SELECT * FROM video_waiting'):
@@ -979,15 +982,7 @@ def import_channel():
 @app.cli.command("channelvideo")
 @with_appcontext
 def cmdchannelvideo():
-    res = "hogehoge"
-    waiting_channels = list()
-    for waiting_channel in query_db('SELECT * FROM video_waiting'):
-        waiting_channels.append(waiting_channel['channelid'])
-    if len(waiting_channels):
-        res = res + "\n" + '{} channels video checked'.format(len(waiting_channels)) + "\n"
-        # query_db('DELETE FROM video_waiting')
-        print(res)
-
+    print(functions.duration_format("1:4:13")+" "+functions.duration_format("4:3")+" "+functions.duration_format("3"))
 
 @app.cli.command("spreadsheet")
 @with_appcontext

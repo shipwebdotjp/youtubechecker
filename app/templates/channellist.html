@@ -37,9 +37,9 @@
 	   <td> {{ "{:,}".format(dict_item['viewCount'] | int) }} ({{dict_item['viewChange'] | formatchange}})</td>
 	   <td> <a href="{{ url_for('channelvideos', channelid=dict_item['channelid'])}}">{{ "{:,}".format(dict_item['videoCount'] | int) }}</a> ({{dict_item['videoChange'] | formatchange}})</td>
 	   <!--<td> {{ "{:,}".format(dict_item['commentCount'] | int) }} </td>//-->
-	   <td><a href="{{ url_for('download', channelid=dict_item['channelid'])}}">CSV</a></td>
-	   <td><a href="https://www.youtube.com/channel/{{ dict_item['channelid'] }}">Youtube</a><br></td>
-	   <td><a href="{{ url_for('channellist', delid=dict_item['channelid'])}}" class="btn btn-outline-secondary btn-block">DEL</a></td>
+	   <td><a href="{{ url_for('download', channelid=dict_item['channelid'])}}" class="btn btn-outline-success btn-block"><i class="bi bi-file-spreadsheet-fill"></i></a></td>
+	   <td><a href="https://www.youtube.com/channel/{{ dict_item['channelid'] }}" class="btn btn-outline-danger btn-block"><i class="bi bi-youtube"></i></a><br></td>
+	   <td><a href="{{ url_for('channellist', delid=dict_item['channelid'])}}" class="btn btn-outline-secondary btn-block"><i class="bi bi-trash-fill"></i></a></td>
 	</tr>
 	{% endfor %}
 	</tbody>
@@ -59,7 +59,7 @@
 
 
 {% if session.newregister != 1 %}
-  <a href="{{ url_for('download', channelid='channels')}}" class="btn btn-outline-primary btn-lg btn-block">Channels CSV Download</a><br>
-  <a href="{{ url_for('docheck')}}" class="btn btn-outline-secondary btn-lg btn-block">Do check at once</a><br>
+  <a href="{{ url_for('download', channelid='channels')}}" class="btn btn-outline-primary btn-lg btn-block"><i class="bi bi-download"></i> Download Channels CSV</a><br>
+  <a href="{{ url_for('docheck')}}" class="btn btn-outline-secondary btn-lg btn-block"><i class="bi bi-bell-fill"></i> Do check at once</a><br>
 {% endif %}
 {%- endblock %}

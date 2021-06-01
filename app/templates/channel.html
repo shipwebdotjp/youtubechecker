@@ -7,7 +7,7 @@
     </tr>
     <tr>
         <th scope="row">Channel Name </th>
-        <td>{{ data['title'] }} <a href="https://www.youtube.com/channel/{{ data['channelid'] }}" class="btn btn-outline-info btn-sm">Go to Youtube</a><br>
+        <td>{{ data['title'] }} <a href="https://www.youtube.com/channel/{{ data['channelid'] }}" class="btn btn-outline-danger btn-sm"><i class="bi bi-youtube"></i> Go to Youtube</a><br>
         </td>
     </tr>
     <tr>
@@ -27,7 +27,7 @@
         <td>{{ "{:,}".format(data['commentCount']| int) }}</td>
     </tr>
 </table>
-<a href="{{ url_for('download', channelid=data['channelid'])}}" class="btn btn-outline-info btn-lg btn-block">CSV Download</a><br>
+<a href="{{ url_for('download', channelid=data['channelid'])}}" class="btn btn-outline-info btn-lg btn-block"><i class="bi bi-download"></i> CSV Download</a><br>
 <form action="" method="POST" class="form-inline" id="chart_pram">
     <input type="hidden" name=channelid value="{{data['channelid']}}">
     <div class="form-group  mb-2">

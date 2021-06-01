@@ -10,7 +10,6 @@ import string
 import csv
 import re
 import requests
-import unicodedata
 import math
 
 #import advanced module
@@ -20,7 +19,7 @@ from io import StringIO
 from db import init_db_command, get_db, query_db
 import youtubechecker
 import settings
-
+import functions
 
 
 bp_video = Blueprint('bp_video', __name__, url_prefix='/video')
@@ -89,15 +88,48 @@ def videolist():
 
 @bp_video.route('/detail/<videoid>')
 def videodetail(videoid):
-    return render_template('video/videodetail.html')
+    newdata = query_db('select * from video where videoid = ?',(videoid,),True)
+    return render_template('video/detail.html', title=newdata['title'], data=newdata)
 
 @bp_video.route('/csv/<videoid>')
 def videocsv(videoid):
-    return
+    f = StringIO()
+    writer = csv.writer(f, quotechar='"', quoting=csv.QUOTE_ALL, lineterminator="\n")
+
+    if videoid == 'videos' and current_user.is_authenticated :
+        writer.writerow(['videoid','channelid','title','description','publish_at','thumbnail','categoryId','duration','viewCount','likeCount','dislikeCount','commentCount','viewChange','likeChange','dislikeChange','commentChange','Updatedate'])
+        downloadFileName = 'videos' + '-'+ datetime.datetime.now().strftime('%y%m%d') + '.csv'
+        for video in query_db('select user_video.videoid,video.channelid,video.title,video.description,video.publish_at,video.thumbnail,video.categoryId,video.duration,video.viewCount,video.likeCount,video.dislikeCount,video.commentCount,video.viewChange,video.likeChange,video.dislikeChange,video.commentChange,video.lastUpdate from user_video left outer join video on user_video.videoid = video.videoid where user_video.userid = ?', [current_user.id]):
+            writer.writerow([video['videoid'],video['channelid'],video['title'],video['description'],video['publish_at'],video['thumbnail'],video['categoryId'],video['duration'],video['viewCount'],video['likeCount'],video['dislikeCount'],video['commentCount'],video['viewChange'],video['likeChange'],video['dislikeChange'],video['commentChange'],video['lastUpdate']])
+    else:
+        newdata = query_db('select * from video where videoid = ?',(videoid,),True)
+        if newdata:
+            downloadFileName = newdata['title'] + datetime.datetime.now().strftime('%y%m%d') + '.csv'
+        else:
+            downloadFileName = videoid + datetime.datetime.now().strftime('%y%m%d') + '.csv'
+        if youtubechecker.check_videoid(videoid):
+            writer.writerow(['Date','viewCount','viewChange','likeCount','likeChange','dislikeCount','dislikeChange','commentCount','commentChange'])
+            for video in query_db('select * from video_history where videoid = ?', [videoid]):
+                writer.writerow([video['date'],video['viewCount'],video['viewChange'],video['likeCount'],video['likeChange'],video['dislikeCount'],video['dislikeChange'],video['commentCount'],video['commentChange']])
+        else:
+            return 'err: video ID'
+
+    res = make_response()
+    res.data = f.getvalue()
+    res.headers['Content-Type'] = 'text/csv'
+    res.headers['Content-Disposition'] = functions.rfc5987_content_disposition(downloadFileName)
+    return res
 
 @bp_video.route('/docheck')
 def docheckvideo():
-    return    
+    user = query_db('select id,notify_token from user where id = ?', [current_user.id],True)
+    if user['notify_token']:
+        youtubechecker.send_notify_from_user(user['id'],user['notify_token'],['video'])
+        flash('Plese see your LINE!', 'alert-success')
+    else:
+        flash('Plese link to LINE Notify first!', 'alert-warning')
+    
+    return redirect(url_for('bp_video.videolist'))
 
 
 def insert_videos(newids):
@@ -138,7 +170,7 @@ def insert_videos(newids):
                         'publish_at': item.get('snippet').get('publishedAt').replace('Z', '').replace('T', ' '), 
                         'thumbnail': thumbnail, 
                         'categoryId': item.get('snippet').get('categoryId'), 
-                        'duration': item.get('contentDetails').get('duration').replace('PT', '').replace('M', ':').replace('S', ''), 
+                        'duration': functions.duration_format(item.get('contentDetails').get('duration').replace('PT', '').replace('H', ':').replace('M', ':').replace('S', '')), 
                         'viewCount': item.get('statistics').get('viewCount'), 
                         'likeCount': item.get('statistics').get('likeCount'), 
                         'dislikeCount': item.get('statistics').get('dislikeCount'), 
