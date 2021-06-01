@@ -982,7 +982,7 @@ def import_channel():
 @app.cli.command("channelvideo")
 @with_appcontext
 def cmdchannelvideo():
-    print(functions.duration_format("1:4:13")+" "+functions.duration_format("4:3")+" "+functions.duration_format("3"))
+    return
 
 @app.cli.command("spreadsheet")
 @with_appcontext
