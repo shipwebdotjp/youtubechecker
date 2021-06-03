@@ -1,4 +1,4 @@
-from flask import Flask, render_template, url_for, send_from_directory, request, redirect,  flash, Response, abort, session, make_response
+from flask import Flask, render_template, url_for, send_from_directory, request, redirect,  flash, Response, abort, session, make_response, Request
 import os
 import datetime
 import urllib
@@ -27,10 +27,11 @@ from user import User
 import youtubechecker
 import settings
 import functions
+from proxiedRequest import ProxiedRequest
 
 #blueprint module imports
 from video.video import bp_video
-
+            
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
 app.config['SCHEDULER_API_ENABLED'] = True
@@ -40,6 +41,8 @@ os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 # register blueprint modules
 app.register_blueprint(bp_video)
 
+# request
+app.request_class = ProxiedRequest
 
 login_manager = LoginManager()
 login_manager.init_app(app)
