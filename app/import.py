@@ -39,10 +39,10 @@ def main():
             else:
                 channel = 'user/' + match
         else:
-            print("Exist:"+match)
+            # print("Exist:"+match)
         if channel:
             channel_list.append(channel+","+match)
-            print("New:"+channel)
+            # print("New:"+channel)
 
     with open('import.txt', mode='a') as f:
         f.write('\n'.join(channel_list))

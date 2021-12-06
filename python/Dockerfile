@@ -2,6 +2,7 @@
 
 # Time Zone
 ENV TZ Asia/Tokyo
+EXPOSE 80
 
 WORKDIR /workspace/app
 

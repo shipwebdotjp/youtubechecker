@@ -156,7 +156,7 @@ def job(): # Youtube Data APIへアクセスする
         if response.get('items'):
             for item in response['items']: # 帰ってきた結果をチャンネルごと処理
                 id = item.get('id')
-                print(id)
+                # print(id)
                 curdata = query_db('select * from channel where channelid = ?', [id], True)
                 if curdata and item.get('statistics'): # 以前のデータが保存されているかどうか
                     subscriberCount = item['statistics'].get('subscriberCount')
@@ -194,7 +194,7 @@ def job(): # Youtube Data APIへアクセスする
                             subscriberChange,viewChange,videoChange,commentChange),
                 )
                 db.commit()
-                print(f'{subscriberCount},{viewCount},{videoCount},{commentCount},{subscriberChange},{viewChange},{videoChange},{commentChange}')
+                # print(f'{subscriberCount},{viewCount},{videoCount},{commentCount},{subscriberChange},{viewChange},{videoChange},{commentChange}')
     idlines = query_db('select count(channelid) from channel',(),True)
     userlines = query_db('select count(id) from user',(),True)
     return f'Channel Count: {idlines[0]:,d} User Count: {userlines[0]:,d}'
@@ -371,7 +371,7 @@ def updateVideosJob(): # ビデオの情報を更新する
         if response.get('items'):
             for item in response['items']: # 帰ってきた結果をチャンネルごと処理
                 id = item.get('id')
-                print(id)
+                # print(id)
 
                 curdata = query_db('select * from video where videoid = ?', [id], True)
                 if item.get('statistics') and item.get('snippet'):
@@ -415,6 +415,6 @@ def updateVideosJob(): # ビデオの情報を更新する
                             queryData,
                     )
                     db.commit()
-                    print(f'{viewCount},{likeCount},{dislikeCount},{commentCount},{viewChange},{likeChange},{dislikeChange},{commentChange}')
+                    # print(f'{viewCount},{likeCount},{dislikeCount},{commentCount},{viewChange},{likeChange},{dislikeChange},{commentChange}')
     idlines = query_db('select count(videoid) from video',(),True)
     return f'Video Count: {idlines[0]:,d}'
