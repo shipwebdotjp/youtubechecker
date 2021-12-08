@@ -10,6 +10,7 @@ PythonのFlaskフレームワーク上で動くWebサービス。
 LINE/Googleでのシングルサインオン機能，LINE Notifyとの連携機能を持つ。  
 指定したYoutubeチャンネルの登録者数，総再生数と増減を毎日一回LINEで通知  
 登録者数，再生数，動画数のデータをチャンネルごとにCSVファイルでダウンロード可能  
+指定した動画の再生数やコメント数、いいねの数の推移も通知や記録可能  
 それらのデータの推移知ることができ，Excelなどで読み込むことでグラフ表示も可能。
 
 ![LINE](https://blog.shipweb.jp/wp-content/uploads/2020/09/Screenshot-LINE01.jpg)
