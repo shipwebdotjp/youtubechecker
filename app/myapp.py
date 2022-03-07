@@ -969,7 +969,7 @@ def dayly_job():
             "DELETE FROM video_waiting"
         )
         db.commit()
-    # youtubechecker.send_line_notify(res)
+    youtubechecker.send_line_notify(res)
     print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')+res)
 
 @app.cli.command("initdb")

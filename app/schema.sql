@@ -94,3 +94,14 @@ CREATE TABLE IF NOT EXISTS video_history (
   commentChange integer,
   PRIMARY KEY(videoid,date)
 );
+
+CREATE TABLE IF NOT EXISTS site_history (
+    id integer primary key,
+    date TEXT NOT NULL,
+    userCount integer,
+    channelCount integer,
+    videoCount integer,
+    userChange integer,
+    channelChange integer,
+    videoChange integer
+);

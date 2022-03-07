@@ -197,7 +197,33 @@ def job(): # Youtube Data APIへアクセスする
                 # print(f'{subscriberCount},{viewCount},{videoCount},{commentCount},{subscriberChange},{viewChange},{videoChange},{commentChange}')
     idlines = query_db('select count(channelid) from channel',(),True)
     userlines = query_db('select count(id) from user',(),True)
-    return f'Channel Count: {idlines[0]:,d} User Count: {userlines[0]:,d}'
+    videolines = query_db('select count(videoid) from video',(),True)
+    curdata = query_db('select * from site_history order by id desc limit 0,1', (), True)
+    userCount = userlines[0]
+    channelCount = idlines[0]
+    videoCount = videolines[0]
+    if curdata:
+        userChange = userCount - curdata['userCount']
+        channelChange = channelCount - curdata['channelCount']
+        videoChange = videoCount - curdata['videoCount']
+    else:
+        userChange = 0
+        channelChange = 0
+        videoChange = 0
+    db.execute(
+                    "INSERT INTO site_history (date,userCount,channelCount,videoCount,userChange,channelChange,videoChange) VALUES(?,?,?,?,?,?,?)",
+                    (
+                        datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        userCount,
+                        channelCount,
+                        videoCount,
+                        userChange,
+                        channelChange,
+                        videoChange
+                    ),
+                )
+    db.commit()
+    return f'Channel Count: {channelCount:,d} ({str(change_format(channelChange))}) User Count: {userCount:,d} ({str(change_format(userChange))}) Video Count: {videoCount:,d} ({str(change_format(videoChange))})'
 
 
 def send_notify_each_user():
