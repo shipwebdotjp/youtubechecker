@@ -20,6 +20,8 @@ GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
 MAX_VIDEOS_PER_USER = os.environ.get("MAX_VIDEOS_PER_USER")
 MAX_CHANNELS_PER_USER = os.environ.get("MAX_CHANNELS_PER_USER")
 
+IS_SEND_DAILY_STATISTICS = os.environ.get("IS_SEND_DAILY_STATISTICS")
+
 #Local settings
 channel_order = [
     {'title': 'Subscriber Day Descending', 'val':'subscriberChange desc'},
