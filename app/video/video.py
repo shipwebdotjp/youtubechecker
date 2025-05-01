@@ -122,12 +122,12 @@ def videocsv(videoid):
 
 @bp_video.route('/docheck')
 def docheckvideo():
-    user = query_db('select id,notify_token from user where id = ?', [current_user.id],True)
-    if user['notify_token']:
-        youtubechecker.send_notify_from_user(user['id'],user['notify_token'],['video'])
+    user = query_db('select id from user where id = ?', [current_user.id],True)
+    if user['id'].startswith('U'):
+        youtubechecker.send_notify_from_user(user['id'],['video'])
         flash('Plese see your LINE!', 'alert-success')
     else:
-        flash('Plese link to LINE Notify first!', 'alert-warning')
+        flash('Plese link to LINE first!', 'alert-warning')
     
     return redirect(url_for('bp_video.videolist'))
 

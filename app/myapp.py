@@ -116,6 +116,7 @@ def channel(channelid):
     return render_template('channel.html',title=newdata['title'],data=newdata)
 
 @app.route('/download/<channelid>')
+@login_required
 def download(channelid):
     f = StringIO()
     writer = csv.writer(f, quotechar='"', quoting=csv.QUOTE_ALL, lineterminator="\n")
@@ -220,12 +221,12 @@ def videodownload(channelid):
 
 @app.route('/docheck')
 def docheck():
-    user = query_db('select id,notify_token from user where id = ?', [current_user.id],True)
-    if user['notify_token']:
-        youtubechecker.send_notify_from_user(user['id'],user['notify_token'],['channel'])
+    user = query_db('select id from user where id = ?', [current_user.id],True)
+    if user['id'].startswith('U'):
+        youtubechecker.send_notify_from_user(user['id'],['channel'])
         flash('Plese see your LINE!', 'alert-success')
     else:
-        flash('Plese link to LINE Notify first!', 'alert-warning')
+        flash('Plese link to LINE first!', 'alert-warning')
     
     return redirect(url_for('channellist'))
 
@@ -970,7 +971,9 @@ def dayly_job():
         )
         db.commit()
     if int(settings.IS_SEND_DAILY_STATISTICS) == 1:
-        youtubechecker.send_line_notify(res)
+        youtubechecker.send_line_push(
+            settings.LINE_ADMIN_ID,
+            [{"type":"text","text":res}])
     print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')+res)
 
 @app.cli.command("initdb")
@@ -982,7 +985,9 @@ def init_db():
 @with_appcontext
 def import_channel():
     res = import_from_text()
-    youtubechecker.send_line_notify(res)
+    youtubechecker.end_line_push(
+            settings.LINE_ADMIN_ID,
+            [{"type":"text","text":res}])
 
 @app.cli.command("channelvideo")
 @with_appcontext

@@ -152,7 +152,8 @@ def job(): # Youtube Data APIへアクセスする
             # HTTPエラーが生じた場合は，エラーメッセージを表示。
             print('There was an error creating the model. Check the details:')
             print(err._get_reason())
-            send_line_notify(err._get_reason()) # LINEでもエラーを通知
+            # send_line_notify(err._get_reason()) # LINEでもエラーを通知
+            send_line_push(settings.LINE_ADMIN_ID,[{"type":"text","text":err._get_reason()}])
         if response.get('items'):
             for item in response['items']: # 帰ってきた結果をチャンネルごと処理
                 id = item.get('id')
@@ -228,13 +229,13 @@ def job(): # Youtube Data APIへアクセスする
 
 def send_notify_each_user():
     nowtime = datetime.datetime.now().strftime('%H%M')
-    for user in query_db('select id,notify_token from user where push_time = ?', [nowtime]):
-        if user['notify_token']:
-            send_notify_from_user(user['id'],user['notify_token'],['channel','video'])
+    for user in query_db('select id from user where push_time = ?', [nowtime]):
+        if user['id'].startswith('U'):
+            send_notify_from_user(user['id'],['channel','video'])
             print('Send notify to '+user['id'])
     print("finished at "+nowtime)    
 
-def send_notify_from_user(user_id,notify_token,category):
+def send_notify_from_user(user_id,category):
     if 'channel' in category:
         result = list()
         for channel in query_db('select user_channel.channelid,channel.title,channel.publish_at,channel.subscriberCount,channel.viewCount,channel.videoCount,channel.commentCount,channel.subscriberChange,channel.viewChange,channel.videoChange,channel.commentChange from user_channel left outer join channel on user_channel.channelid = channel.channelid where user_channel.userid = ?',
@@ -246,7 +247,8 @@ def send_notify_from_user(user_id,notify_token,category):
                 ' 🎞: '+functions.human_format(int(channel['videoCount']))+ ' ('+str(change_format(channel['videoChange']))+')')
         n = 10
         for split_result in [result[idx:idx + n] for idx in range(0,len(result), n)]: # リストを10ずつ分割（長すぎると切れるため）
-            send_line_notify('\n'+'\n'.join(split_result),notify_token) # 結果が入ったリストを改行で結合させて，LINE Notifyで結果をLINEに送信する
+            # send_line_notify('\n'+'\n'.join(split_result),notify_token) # 結果が入ったリストを改行で結合させて，LINE Notifyで結果をLINEに送信する
+            send_line_push(user_id,[{"type":"text","text":'\n'+'\n'.join(split_result)}])
 
     if 'video' in category:
         video_result = list()
@@ -254,7 +256,8 @@ def send_notify_from_user(user_id,notify_token,category):
             video_result.append(video['title'][:15]+' 👀: '+functions.human_format(int(0 if video['viewCount'] is None else video['viewCount']))+ ' ('+str(change_format(video['viewChange']))+')'+' 👍: '+functions.human_format(int(0 if video['likeCount'] is None else video['likeCount']))+ ' ('+str(change_format(video['likeChange']))+')'+' 👎: '+functions.human_format(int(0 if video['dislikeCount'] is None else video['dislikeCount']))+ ' ('+str(change_format(video['dislikeChange']))+')'+' 💬: '+functions.human_format(int(0 if video['commentCount'] is None else video['commentCount']))+ ' ('+str(change_format(video['commentChange']))+')')
         n = 10
         for split_result in [video_result[idx:idx + n] for idx in range(0,len(video_result), n)]: # リストを10ずつ分割（長すぎると切れるため）
-            send_line_notify('\n'+'\n'.join(split_result),notify_token) # 結果が入ったリストを改行で結合させて，LINE Notifyで結果をLINEに送信する
+            # send_line_notify('\n'+'\n'.join(split_result),notify_token) # 結果が入ったリストを改行で結合させて，LINE Notifyで結果をLINEに送信する
+            send_line_push(user_id,[{"type":"text","text":'\n'+'\n'.join(split_result)}])
 
 def change_format(change):
     change = ('+' if change > 0 else ('±' if change == 0 else '')) + "{:,}".format(change) # プラスの場合は先頭に＋をつける
@@ -393,7 +396,8 @@ def updateVideosJob(): # ビデオの情報を更新する
             # HTTPエラーが生じた場合は，エラーメッセージを表示。
             print('There was an error creating the model. Check the details:')
             print(err._get_reason())
-            send_line_notify(err._get_reason()) # LINEでもエラーを通知
+            # send_line_notify(err._get_reason()) # LINEでもエラーを通知
+            send_line_push(settings.LINE_ADMIN_ID,[{"type":"text","text":err._get_reason()}])
         if response.get('items'):
             for item in response['items']: # 帰ってきた結果をチャンネルごと処理
                 id = item.get('id')

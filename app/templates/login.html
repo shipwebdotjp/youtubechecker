@@ -3,7 +3,7 @@
 <div class="card-group">
     <div class="card">
         <div class="card-header">
-        Logging in with LINE or Google account<br>
+        Logging in with LINE<br>
         <!--
         <hr>
         本Webサービスでは、ログイン時の認証画面にて許可を頂いた場合のみ、あなたのLINEアカウント/Googleアカウントに登録されているメールアドレスを取得します。<br />
@@ -19,9 +19,10 @@
             <p class="card-text">
                 <a href="{{ url_for('line_login') }}" ><img src="{{ url_for('static', filename='btn_line_signin.png') }}"></a>
             </p>
-            <p class="card-text">
+            <!--<p class="card-text">
                 <a href="{{ url_for('google_login') }}"><img src="{{ url_for('static', filename='btn_google_signin.png') }}"></a>
             </p>
+            -->
         </div>
         <div class="card-footer text-muted">
         

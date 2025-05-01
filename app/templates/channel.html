@@ -27,7 +27,9 @@
         <td>{{ "{:,}".format(data['commentCount']| int) }}</td>
     </tr>
 </table>
+{% if current_user.is_authenticated %}
 <a href="{{ url_for('download', channelid=data['channelid'])}}" class="btn btn-outline-info btn-lg btn-block"><i class="bi bi-download"></i> CSV Download</a><br>
+{% endif %}
 <form action="" method="POST" class="form-inline" id="chart_pram">
     <input type="hidden" name=channelid value="{{data['channelid']}}">
     <div class="form-group  mb-2">
