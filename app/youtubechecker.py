@@ -52,6 +52,7 @@ def disable_notify_from(user_id):
         (user_id,),
     )
     db.commit()
+    return 'Disabled notify'
 
 def enable_notify_from(user_id):
     db = get_db()
@@ -60,6 +61,7 @@ def enable_notify_from(user_id):
         (user_id,),
     )
     db.commit()
+    return 'Enabled notify'
 
 def check_channelid(channelid):
     return re.search('(UC[a-zA-Z0-9_-]+)',channelid)
