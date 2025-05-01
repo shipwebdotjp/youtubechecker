@@ -45,6 +45,22 @@ def notify_revoke_from_token(line_notify_token):
     )
     db.commit()
 
+def disable_notify_from(user_id):
+    db = get_db()
+    db.execute(
+        "UPDATE user SET notify_token = null where id = ?",
+        (user_id,),
+    )
+    db.commit()
+
+def enable_notify_from(user_id):
+    db = get_db()
+    db.execute(
+        "UPDATE user SET notify_token = 'enabled' where id = ?",
+        (user_id,),
+    )
+    db.commit()
+
 def check_channelid(channelid):
     return re.search('(UC[a-zA-Z0-9_-]+)',channelid)
 
@@ -229,8 +245,8 @@ def job(): # Youtube Data APIへアクセスする
 
 def send_notify_each_user():
     nowtime = datetime.datetime.now().strftime('%H%M')
-    for user in query_db('select id from user where push_time = ?', [nowtime]):
-        if user['id'].startswith('U'):
+    for user in query_db('select id, notify_token from user where push_time = ?', [nowtime]):
+        if user['id'].startswith('U') and user['notify_token']:
             send_notify_from_user(user['id'],['channel','video'])
             print('Send notify to '+user['id'])
     print("finished at "+nowtime)    

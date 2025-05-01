@@ -457,6 +457,20 @@ def notify_revoke():
     flash(ret, 'alert-success')
     return redirect(url_for('account'))
 
+@app.route('/notify/disable')
+@login_required
+def disable_notify():
+    ret = youtubechecker.disable_notify_from(current_user.id)
+    flash(ret, 'alert-success')
+    return redirect(url_for('account'))
+
+@app.route('/notify/enable')
+@login_required
+def enable_notify():
+    ret = youtubechecker.enable_notify_from(current_user.id)
+    flash(ret, 'alert-success')
+    return redirect(url_for('account'))
+
 @app.route("/channellist", methods=["GET", "POST"])
 @login_required
 def channellist():
