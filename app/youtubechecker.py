@@ -14,37 +14,6 @@ from flask.cli import with_appcontext
 import settings
 import functions
 
-def send_line_notify(notification_message, notify_token=settings.LINE_TOKEN): # LINE Notifyで通知する
-    line_notify_token = notify_token
-    line_notify_api = 'https://notify-api.line.me/api/notify'
-    headers = {'Authorization': f'Bearer {line_notify_token}'}
-    data = {'message': f'{notification_message}'}
-    res = requests.post(line_notify_api, headers = headers, data = data)
-    if res.status_code == 401:
-        notify_revoke_from_token(line_notify_token)
-
-def notify_revoke_from(user_id):
-    userdata = query_db('select notify_token from user where id = ?',(user_id,),True)
-    line_notify_token = userdata['notify_token']
-    line_notify_api = 'https://notify-api.line.me/api/revoke'
-    headers = {'Authorization': f'Bearer {line_notify_token}'}
-    data = {}
-    res = requests.post(line_notify_api, headers = headers, data = data) 
-    if res.status_code == 401:
-        retval = 'Already unlinked.'
-    else:
-        retval = 'Unlinked.'
-    notify_revoke_from_token(line_notify_token)
-    return retval
-
-def notify_revoke_from_token(line_notify_token):
-    db = get_db()
-    db.execute(
-        "UPDATE user SET notify_token = null where notify_token = ?",
-        (line_notify_token,),
-    )
-    db.commit()
-
 def disable_notify_from(user_id):
     db = get_db()
     db.execute(
@@ -170,7 +139,6 @@ def job(): # Youtube Data APIへアクセスする
             # HTTPエラーが生じた場合は，エラーメッセージを表示。
             print('There was an error creating the model. Check the details:')
             print(err._get_reason())
-            # send_line_notify(err._get_reason()) # LINEでもエラーを通知
             send_line_push(settings.LINE_ADMIN_ID,[{"type":"text","text":err._get_reason()}])
         if response.get('items'):
             for item in response['items']: # 帰ってきた結果をチャンネルごと処理
@@ -265,7 +233,6 @@ def send_notify_from_user(user_id,category):
                 ' 🎞: '+functions.human_format(int(channel['videoCount']))+ ' ('+str(change_format(channel['videoChange']))+')')
         n = 10
         for split_result in [result[idx:idx + n] for idx in range(0,len(result), n)]: # リストを10ずつ分割（長すぎると切れるため）
-            # send_line_notify('\n'+'\n'.join(split_result),notify_token) # 結果が入ったリストを改行で結合させて，LINE Notifyで結果をLINEに送信する
             send_line_push(user_id,[{"type":"text","text":'\n'+'\n'.join(split_result)}])
 
     if 'video' in category:
@@ -274,7 +241,6 @@ def send_notify_from_user(user_id,category):
             video_result.append(video['title'][:15]+' 👀: '+functions.human_format(int(0 if video['viewCount'] is None else video['viewCount']))+ ' ('+str(change_format(video['viewChange']))+')'+' 👍: '+functions.human_format(int(0 if video['likeCount'] is None else video['likeCount']))+ ' ('+str(change_format(video['likeChange']))+')'+' 👎: '+functions.human_format(int(0 if video['dislikeCount'] is None else video['dislikeCount']))+ ' ('+str(change_format(video['dislikeChange']))+')'+' 💬: '+functions.human_format(int(0 if video['commentCount'] is None else video['commentCount']))+ ' ('+str(change_format(video['commentChange']))+')')
         n = 10
         for split_result in [video_result[idx:idx + n] for idx in range(0,len(video_result), n)]: # リストを10ずつ分割（長すぎると切れるため）
-            # send_line_notify('\n'+'\n'.join(split_result),notify_token) # 結果が入ったリストを改行で結合させて，LINE Notifyで結果をLINEに送信する
             send_line_push(user_id,[{"type":"text","text":'\n'+'\n'.join(split_result)}])
 
 def change_format(change):
@@ -414,7 +380,6 @@ def updateVideosJob(): # ビデオの情報を更新する
             # HTTPエラーが生じた場合は，エラーメッセージを表示。
             print('There was an error creating the model. Check the details:')
             print(err._get_reason())
-            # send_line_notify(err._get_reason()) # LINEでもエラーを通知
             send_line_push(settings.LINE_ADMIN_ID,[{"type":"text","text":err._get_reason()}])
         if response.get('items'):
             for item in response['items']: # 帰ってきた結果をチャンネルごと処理

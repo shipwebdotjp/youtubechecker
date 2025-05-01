@@ -1,0 +1,35 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="table-responsive mt-3">
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Profile Picture</th>
+                <th>Push Time</th>
+                <th>Notify</th>
+                <th>Language</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user['id'] }}</td>
+                <td>{{ user['name'] }}</td>
+                <td>
+                    {% if user['profile_pic'] %}
+                    <img src="{{ user['profile_pic'] }}" alt="Profile" width="50">
+                    {% endif %}
+                </td>
+                <td>
+                    {{ user['push_time'][:2] }}:{{ user['push_time'][2:] }}
+                </td>
+                <td>{{ user['notify_token'] or '' }}</td>
+                <td>{{ user['lang'] or '' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

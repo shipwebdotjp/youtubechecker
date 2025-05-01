@@ -36,6 +36,11 @@ app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
 app.config['SCHEDULER_API_ENABLED'] = True
 app.secret_key = settings.SECRET
+app.config['LINE_ADMIN_ID'] = settings.LINE_ADMIN_ID
+
+@app.context_processor
+def inject_settings():
+    return dict(settings=settings)
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
 # register blueprint modules
@@ -46,6 +51,17 @@ app.request_class = ProxiedRequest
 
 login_manager = LoginManager()
 login_manager.init_app(app)
+
+from functools import wraps
+
+def admin_required(f):
+    @wraps(f)
+    @login_required
+    def decorated_function(*args, **kwargs):
+        if current_user.id != settings.LINE_ADMIN_ID:
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
 
 # Flask-Login helper to retrieve a user from our db
 @login_manager.user_loader
@@ -389,74 +405,6 @@ def pushtime():
     newdata = {'title':'Notify time','hour':hour,'min':min}
     return render_template('pushtime.html',title=newdata['title'],data=newdata)
 
-@app.route('/gonotify')
-@login_required
-def gonotify():
-        newdata = {
-            'header' : 'Next step',
-            'message' : 'Link with LINE Notify to your account.',
-            'next_url': url_for('notify'),
-            'next_text': 'Next'
-        }
-        return render_template('message.html',title='LINE Notify',data=newdata)
-
-@app.route('/notify')
-@login_required
-def notify():
-    oauth = WebApplicationClient(settings.LINE_NOTIFY_ID)
-    state = "".join([random.choice(string.ascii_letters + string.digits) for i in range(32)])
-    session["state"] = state
-    url, headers, body = oauth.prepare_authorization_request('https://notify-bot.line.me/oauth/authorize',
-      state=state, redirect_url=request.base_url + "/callback",
-      scope='notify' )
-    return redirect(url)
-
-@app.route('/notify/callback')
-@login_required
-def notifycallback():
-    oauth = WebApplicationClient(settings.LINE_NOTIFY_ID)
-    if request.args.get("error"):
-        flash('Error! '+request.args.get("error_description"), 'alert-warning')
-        return redirect(url_for('main'))
-
-    state = request.args.get("state")
-    if state != session.get("state"):
-        flash('Error! state not match.', 'alert-warning')
-        return redirect(url_for('main'))
-    session.pop('state', None)
-    url, headers, body = oauth.prepare_token_request('https://notify-bot.line.me/oauth/token',
-                        authorization_response=request.url,
-                        redirect_url=request.base_url,
-                        client_secret=settings.LINE_NOTIFY_SECRET)
-    req = urllib.request.Request(url, body.encode(), headers=headers)
-    try:
-        with urllib.request.urlopen(req) as res:
-            response_body=res.read()
-    except urllib.error.HTTPError as err:
-        return err.read()
-    oauth_res = json.loads(response_body)
-    if oauth_res.get('access_token'):
-        db = get_db()
-        db.execute(
-            "UPDATE user set notify_token = ? WHERE id = ?",
-            (oauth_res.get('access_token'), current_user.id),
-        )
-        db.commit()
-        flash('Line notify has been successfully linked!', 'alert-success')
-        if session.get("newregister") == 1:
-            return redirect(url_for("channellist"))
-        else:
-            return redirect(url_for("account"))
-    else:
-        return 'err: access_token not found'
-
-@app.route('/notify/revoke')
-@login_required
-def notify_revoke():
-    ret = youtubechecker.notify_revoke_from(current_user.id)
-    flash(ret, 'alert-success')
-    return redirect(url_for('account'))
-
 @app.route('/notify/disable')
 @login_required
 def disable_notify():
@@ -470,6 +418,12 @@ def enable_notify():
     ret = youtubechecker.enable_notify_from(current_user.id)
     flash(ret, 'alert-success')
     return redirect(url_for('account'))
+
+@app.route('/admin/users')
+@admin_required
+def admin_users():
+    users = query_db('SELECT * FROM user')
+    return render_template('admin_users.html', title='User List', users=users)
 
 @app.route("/channellist", methods=["GET", "POST"])
 @login_required
