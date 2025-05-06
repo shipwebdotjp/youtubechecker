@@ -49,6 +49,17 @@ def name_to_id(name):
     except errors.HttpError as err:
         return {'error':err._get_reason()}
 
+def handle_to_id(handle):
+    youtube = build('youtube', 'v3', developerKey=settings.YOUTUBE_KEY)
+    try:
+        response = youtube.channels().list(part='id', forHandle=handle).execute() # Youtube APIへのリクエスト作成
+        if len(response['items']):
+            item = response['items'][0]
+            return [item['id']]
+        return []
+    except errors.HttpError as err:
+        return {'error':err._get_reason()}
+
 def custom_to_id(name):
     youtube = build('youtube', 'v3', developerKey=settings.YOUTUBE_KEY)
     try:

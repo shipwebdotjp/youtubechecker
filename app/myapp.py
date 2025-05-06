@@ -672,9 +672,11 @@ def insert_channels(newids, isAllowCustomUrl = False):
                 clean_idlist.extend(youtubechecker.custom_to_id(matched.group(1))) # because search uses high amount of quata.
             else:
                 err_msg.append('Custom URL like c/xxxx is not supported. Please use channel id like UCXXXX.')
+        elif re.search('@(.*)',channelid):
+            matched = re.search('@(.*)',channelid)
+            clean_idlist.extend(youtubechecker.handle_to_id(matched.group(1)))
         else:
             err_msg.append('The channels id is wrong.('+channelid+')')
-
     for channelid in clean_idlist:
         if not query_db('select * from channel where channelid = ?',[channelid],True):
             #print(channelid)
